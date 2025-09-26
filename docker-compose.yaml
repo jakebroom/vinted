@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  vinted-inventory:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/app/data/inventory.db
+    restart: unless-stopped
+    container_name: vinted-inventory
