@@ -3,332 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Management - Vinted Inventory System</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        h1 {
-            color: white;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin-bottom: 15px;
-        }
-
-        .subtitle {
-            color: rgba(255,255,255,0.9);
-            font-size: 1.2em;
-            font-weight: 300;
-        }
-
-        .nav-section {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-section h3 {
-            color: white;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .management-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 30px;
-        }
-
-        .management-card {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-
-        .management-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .management-card h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.4em;
-        }
-
-        .management-card p {
-            color: #666;
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            margin: 5px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .btn-large {
-            padding: 20px 40px;
-            font-size: 18px;
-            border-radius: 12px;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        }
-
-        .btn-secondary {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.3);
-            border-color: rgba(255,255,255,0.5);
-        }
-
-        .status-section {
-            background: rgba(255,255,255,0.1);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            backdrop-filter: blur(10px);
-        }
-
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 20px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            backdrop-filter: blur(5px);
-        }
-
-        .stat-number {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: white;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: rgba(255,255,255,0.9);
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            color: white;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4CAF50;
-        }
-
-        .status-dot.offline {
-            background: #f44336;
-        }
-
-        .alert {
-            background: rgba(255,193,7,0.1);
-            border: 2px solid rgba(255,193,7,0.3);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .alert-danger {
-            background: rgba(244,67,54,0.1);
-            border-color: rgba(244,67,54,0.3);
-        }
-
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4CAF50;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            font-weight: 600;
-            z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .toast.show {
-            transform: translateX(0);
-        }
-
-        .toast.error {
-            background: #f44336;
-        }
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .management-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .nav-section {
-                margin-bottom: 20px;
-            }
-            
-            .btn-large {
-                padding: 15px 30px;
-                font-size: 16px;
-            }
-        }
-    </style>
+    <title>Vinted Inventory Management</title>
+    <link rel="stylesheet" href="management.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>⚙️ Database Management</h1>
-            <p class="subtitle">System administration and database controls</p>
+            <h1>📦 Inventory Management</h1>
+            <p>Manage your Vinted inventory system</p>
         </div>
 
-        <!-- Navigation -->
-        <div class="nav-section">
-            <h3>Navigation</h3>
-            <a href="/" class="btn btn-large btn-info">📊 View Inventory Table</a>
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-section="overview">Overview</button>
+            <button class="nav-tab" data-section="brands">Brand Management</button>
+            <button class="nav-tab" data-section="export">Export Data</button>
+            <button class="nav-tab" data-section="cleanup">Cleanup Tools</button>
         </div>
 
-        <!-- System Status -->
-        <div class="status-section">
-            <div class="status-indicator" id="serverStatus">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Checking connection...</span>
+        <div class="content">
+            <!-- Overview Section -->
+            <div id="overview" class="section active">
+                <h2>System Overview</h2>
+                <div class="section-content">
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- Stats will be loaded here -->
+                    </div>
+                    
+                    <div class="export-section">
+                        <h3>Quick Actions</h3>
+                        <div class="export-buttons">
+                            <a href="/inventory.html" class="btn">📋 View Inventory</a>
+                            <a href="/insights.html" class="btn">📊 View Insights</a>
+                            <button onclick="refreshStats()" class="btn btn-secondary">🔄 Refresh Stats</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="status-grid" id="statsContainer">
-                <div class="stat-item">
-                    <div class="stat-number" id="totalItems">-</div>
-                    <div class="stat-label">Total Items</div>
+
+            <!-- Brand Management Section -->
+            <div id="brands" class="section">
+                <h2>Brand Management</h2>
+                <div class="section-content">
+                    <div class="section-header">
+                        <p>Manage available brands for the inventory system</p>
+                        <button id="addBrandBtn" class="btn">Add New Brand</button>
+                    </div>
+                    
+                    <div class="brands-container">
+                        <div class="search-container">
+                            <input type="text" id="brandSearch" class="search-input" placeholder="🔍 Search brands...">
+                        </div>
+                        
+                        <div class="brands-grid" id="brandsGrid">
+                            <!-- Brands will be loaded here -->
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="availableItems">-</div>
-                    <div class="stat-label">Available</div>
+            </div>
+
+            <!-- Export Data Section -->
+            <div id="export" class="section">
+                <h2>Export Data</h2>
+                <div class="section-content">
+                    <div class="section-header">
+                        <p>Export your inventory data in various formats</p>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h3>Available Exports</h3>
+                        <div class="export-buttons">
+                            <button onclick="exportCSV()" class="btn">📄 Export CSV</button>
+                            <button onclick="exportJSON()" class="btn">💾 Export JSON</button>
+                            <button onclick="exportSoldItems()" class="btn">✅ Export Sold Items</button>
+                            <button onclick="exportActiveItems()" class="btn">📦 Export Active Items</button>
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <h3>Report Exports</h3>
+                        <div class="export-buttons">
+                            <button onclick="exportBrandReport()" class="btn btn-secondary">🏷️ Brand Report</button>
+                            <button onclick="exportProfitReport()" class="btn btn-secondary">💰 Profit Report</button>
+                            <button onclick="exportLocationReport()" class="btn btn-secondary">📍 Location Report</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="soldItems">-</div>
-                    <div class="stat-label">Sold</div>
+            </div>
+
+            <!-- Cleanup Tools Section -->
+            <div id="cleanup" class="section">
+                <h2>Cleanup Tools</h2>
+                <div class="section-content">
+                    <div class="warning-box">
+                        <h4>⚠️ Warning</h4>
+                        <p>These tools perform permanent actions on your database. Always backup your data before using cleanup tools.</p>
+                    </div>
+
+                    <div class="cleanup-section">
+                        <h3>Data Cleanup</h3>
+                        <div class="export-buttons">
+                            <button onclick="deleteSoldItems()" class="btn btn-danger">🗑️ Delete Sold Items</button>
+                            <button onclick="cleanupDuplicates()" class="btn btn-secondary">🔄 Remove Duplicates</button>
+                            <button onclick="resetDatabase()" class="btn btn-danger">⚠️ Reset Database</button>
+                        </div>
+                    </div>
+
+                    <div class="cleanup-section">
+                        <h3>Maintenance</h3>
+                        <div class="export-buttons">
+                            <button onclick="optimizeDatabase()" class="btn btn-secondary">⚡ Optimize Database</button>
+                            <button onclick="repairDatabase()" class="btn btn-secondary">🔧 Repair Database</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Management Actions -->
-        <div class="management-grid">
-            <!-- Database Backup -->
-            <div class="management-card">
-                <h3>📥 Database Backup</h3>
-                <p>Download a complete backup of your inventory database. This creates a .db file that you can save as a backup or transfer to another system.</p>
-                <button class="btn btn-success" onclick="managementApp.downloadBackup()">
-                    Download Backup
-                </button>
+    <!-- Brand Modal -->
+    <div id="brandModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="brandModalTitle">Add New Brand</h3>
+                <span class="close" id="closeBrandModal">&times;</span>
             </div>
-
-            <!-- Database Import -->
-            <div class="management-card">
-                <h3>📤 Database Import</h3>
-                <p>Import a database backup file to restore your inventory. This will replace your current data with the imported database.</p>
-                <input type="file" id="importFile" accept=".db" style="display: none;" onchange="managementApp.handleFileImport(event)">
-                <button class="btn" onclick="document.getElementById('importFile').click()">
-                    Import Database
-                </button>
-            </div>
-
-            <!-- Export Data -->
-            <div class="management-card">
-                <h3>📄 Export Data</h3>
-                <p>Export your inventory data to CSV format for use in spreadsheets or other applications.</p>
-                <button class="btn btn-info" onclick="managementApp.exportToCSV()">
-                    Export to CSV
-                </button>
-            </div>
-
-            <!-- Clear Database -->
-            <div class="management-card">
-                <h3>🗑️ Clear Database</h3>
-                <p>Permanently delete ALL inventory data. This action cannot be undone. Make sure you have a backup before proceeding.</p>
-                <div class="alert alert-danger">
-                    ⚠️ This will permanently delete all your data!
-                </div>
-                <button class="btn btn-danger" onclick="managementApp.clearDatabase()">
-                    Clear All Data
-                </button>
+            <div class="modal-body">
+                <form id="brandForm">
+                    <input type="hidden" id="brandId" name="brandId">
+                    <div class="form-group">
+                        <label for="brandName">Brand Name</label>
+                        <input type="text" id="brandName" name="brandName" required placeholder="Enter brand name">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="brandIsActive" name="isActive" checked>
+                            Active (available in dropdown)
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn" id="saveBrandBtn">Save Brand</button>
+                        <button type="button" class="btn-secondary" id="cancelBrandBtn">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -337,196 +153,577 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        class ManagementApp {
-            constructor() {
-                this.init();
-            }
-
-            async init() {
-                await this.checkConnection();
-                await this.loadStats();
-            }
-
-            async checkConnection() {
-                try {
-                    const response = await fetch('/health');
-                    if (response.ok) {
-                        this.updateStatus(true);
-                    } else {
-                        this.updateStatus(false);
-                    }
-                } catch (error) {
-                    this.updateStatus(false);
-                }
-            }
-
-            updateStatus(isOnline) {
-                const statusDot = document.getElementById('statusDot');
-                const statusText = document.getElementById('statusText');
+        // Navigation
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const sectionId = tab.dataset.section;
+                showSection(sectionId);
                 
-                if (isOnline) {
-                    statusDot.classList.remove('offline');
-                    statusText.textContent = 'System Online';
-                } else {
-                    statusDot.classList.add('offline');
-                    statusText.textContent = 'System Offline';
+                // Update active tab
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+
+            // Load section-specific data
+            if (sectionId === 'overview') {
+                loadStats();
+            } else if (sectionId === 'brands') {
+                if (window.brandManager) {
+                    brandManager.loadBrands();
                 }
-            }
-
-            async apiCall(endpoint, options = {}) {
-                try {
-                    const response = await fetch(`/api${endpoint}`, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...options.headers
-                        },
-                        ...options
-                    });
-
-                    if (!response.ok) {
-                        const error = await response.json().catch(() => ({ error: 'Network error' }));
-                        throw new Error(error.error || `HTTP ${response.status}`);
-                    }
-
-                    return await response.json();
-                } catch (error) {
-                    console.error('API Call error:', error);
-                    this.showToast(error.message, 'error');
-                    throw error;
-                }
-            }
-
-            async loadStats() {
-                try {
-                    const stats = await this.apiCall('/stats');
-                    document.getElementById('totalItems').textContent = stats.totalItems;
-                    document.getElementById('availableItems').textContent = stats.availableItems;
-                    document.getElementById('soldItems').textContent = stats.soldItems;
-                } catch (error) {
-                    console.error('Failed to load stats:', error);
-                    document.getElementById('totalItems').textContent = 'Error';
-                    document.getElementById('availableItems').textContent = 'Error';
-                    document.getElementById('soldItems').textContent = 'Error';
-                }
-            }
-
-            async downloadBackup() {
-                try {
-                    const response = await fetch('/api/backup');
-                    if (!response.ok) throw new Error('Backup failed');
-
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `vinted-inventory-backup-${new Date().toISOString().split('T')[0]}.db`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-
-                    this.showToast('Database backup downloaded successfully!');
-                } catch (error) {
-                    console.error('Backup failed:', error);
-                    this.showToast('Failed to download backup', 'error');
-                }
-            }
-
-            handleFileImport(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                if (!file.name.endsWith('.db')) {
-                    this.showToast('Please select a valid .db file', 'error');
-                    return;
-                }
-
-                if (!confirm('This will replace your current database. Are you sure you want to continue?')) {
-                    event.target.value = ''; // Reset file input
-                    return;
-                }
-
-                this.showToast('Database import is not yet implemented. Please use manual file replacement.', 'error');
-                event.target.value = ''; // Reset file input
-            }
-
-            async exportToCSV() {
-                try {
-                    const items = await this.apiCall('/items');
-                    
-                    const headers = ['ID', 'Name', 'Color', 'Size', 'Brand', 'Price', 'Condition', 'Status', 'Date Added', 'Sold Date', 'Description'];
-                    const csvContent = [
-                        headers.join(','),
-                        ...items.map(item => [
-                            item.id,
-                            `"${this.escapeCSV(item.name)}"`,
-                            `"${this.escapeCSV(item.color)}"`,
-                            `"${this.escapeCSV(item.size)}"`,
-                            `"${this.escapeCSV(item.brand || '')}"`,
-                            item.price || '',
-                            `"${this.escapeCSV(item.condition_item || '')}"`,
-                            item.is_sold ? 'SOLD' : 'AVAILABLE',
-                            `"${this.escapeCSV(item.date_added)}"`,
-                            `"${this.escapeCSV(item.sold_date || '')}"`,
-                            `"${this.escapeCSV(item.description || '')}"`
-                        ].join(','))
-                    ].join('\n');
-
-                    const blob = new Blob([csvContent], { type: 'text/csv' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `vinted-inventory-export-${new Date().toISOString().split('T')[0]}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-
-                    this.showToast('Data exported to CSV successfully!');
-                } catch (error) {
-                    console.error('Export failed:', error);
-                    this.showToast('Failed to export data', 'error');
-                }
-            }
-
-            async clearDatabase() {
-                if (!confirm('Are you sure you want to delete ALL inventory data? This cannot be undone!')) return;
-                if (!confirm('This will permanently delete ALL your items. Type "DELETE" to confirm this action.')) return;
-
-                const confirmation = prompt('Type "DELETE" (all caps) to confirm:');
-                if (confirmation !== 'DELETE') {
-                    this.showToast('Database clear cancelled', 'error');
-                    return;
-                }
-
-                try {
-                    await this.apiCall('/clear', { method: 'DELETE' });
-                    this.showToast('Database cleared successfully!');
-                    await this.loadStats();
-                } catch (error) {
-                    console.error('Clear database failed:', error);
-                }
-            }
-
-            escapeCSV(text) {
-                if (!text) return '';
-                return text.toString().replace(/"/g, '""');
-            }
-
-            showToast(message, type = 'success') {
-                const toast = document.getElementById('toast');
-                toast.textContent = message;
-                toast.className = `toast ${type}`;
-                toast.classList.add('show');
-
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 3000);
             }
         }
 
+        // Overview Functions
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (!response.ok) throw new Error('Failed to load stats');
+                
+                const stats = await response.json();
+                displayStats(stats);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showToast('Failed to load statistics', 'error');
+            }
+        }
+
+        function displayStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.totalItems || 0}</div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.activeItems || 0}</div>
+                    <div class="stat-label">Active Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.soldItems || 0}</div>
+                    <div class="stat-label">Sold Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">£${stats.totalValue || '0.00'}</div>
+                    <div class="stat-label">Total Value</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.totalBrands || 0}</div>
+                    <div class="stat-label">Brands</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">£${stats.profit || '0.00'}</div>
+                    <div class="stat-label">Total Profit</div>
+                </div>
+            `;
+        }
+
+        function refreshStats() {
+            loadStats();
+            showToast('Statistics refreshed', 'success');
+        }
+
+        // Export Functions
+        async function exportCSV() {
+            try {
+                const response = await fetch('/api/export/csv');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `inventory_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showToast('CSV exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        async function exportJSON() {
+            try {
+                const response = await fetch('/api/items');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const data = await response.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `inventory_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showToast('JSON exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        async function exportSoldItems() {
+            try {
+                const response = await fetch('/api/export/sold');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `sold_items_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showToast('Sold items exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        async function exportActiveItems() {
+            try {
+                const response = await fetch('/api/export/active');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `active_items_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showToast('Active items exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        async function exportBrandReport() {
+            try {
+                const response = await fetch('/api/export/brand-report');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `brand_report_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showToast('Brand report exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        async function exportProfitReport() {
+            try {
+                const response = await fetch('/api/export/profit-report');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `profit_report_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showToast('Profit report exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        async function exportLocationReport() {
+            try {
+                const response = await fetch('/api/export/location-report');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `location_report_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showToast('Location report exported successfully', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+
+        // Cleanup Functions
+        async function deleteSoldItems() {
+            if (!confirm('Are you sure you want to permanently delete all sold items? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cleanup/sold', { method: 'DELETE' });
+                if (!response.ok) throw new Error('Cleanup failed');
+                
+                const result = await response.json();
+                showToast(`Deleted ${result.deletedCount} sold items`, 'success');
+                refreshStats();
+            } catch (error) {
+                console.error('Cleanup error:', error);
+                showToast('Cleanup failed', 'error');
+            }
+        }
+
+        async function cleanupDuplicates() {
+            if (!confirm('Are you sure you want to remove duplicate items? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cleanup/duplicates', { method: 'DELETE' });
+                if (!response.ok) throw new Error('Cleanup failed');
+                
+                const result = await response.json();
+                showToast(`Removed ${result.removedCount} duplicates`, 'success');
+                refreshStats();
+            } catch (error) {
+                console.error('Cleanup error:', error);
+                showToast('Cleanup failed', 'error');
+            }
+        }
+
+        async function resetDatabase() {
+            const confirmation = prompt('Type "RESET" to confirm you want to permanently delete ALL data:');
+            if (confirmation !== 'RESET') {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cleanup/reset', { method: 'DELETE' });
+                if (!response.ok) throw new Error('Reset failed');
+                
+                showToast('Database reset successfully', 'success');
+                refreshStats();
+            } catch (error) {
+                console.error('Reset error:', error);
+                showToast('Reset failed', 'error');
+            }
+        }
+
+        async function optimizeDatabase() {
+            try {
+                const response = await fetch('/api/maintenance/optimize', { method: 'POST' });
+                if (!response.ok) throw new Error('Optimization failed');
+                
+                showToast('Database optimized successfully', 'success');
+            } catch (error) {
+                console.error('Optimization error:', error);
+                showToast('Optimization failed', 'error');
+            }
+        }
+
+        async function repairDatabase() {
+            try {
+                const response = await fetch('/api/maintenance/repair', { method: 'POST' });
+                if (!response.ok) throw new Error('Repair failed');
+                
+                showToast('Database repaired successfully', 'success');
+            } catch (error) {
+                console.error('Repair error:', error);
+                showToast('Repair failed', 'error');
+            }
+        }
+
+        // Brand Management Class
+        class BrandManager {
+            constructor() {
+                this.brands = [];
+                this.filteredBrands = [];
+                this.editingBrandId = null;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.loadBrands();
+            }
+
+            bindEvents() {
+                // Add brand button
+                document.getElementById('addBrandBtn').addEventListener('click', () => {
+                    this.showBrandModal();
+                });
+
+                // Modal close events
+                document.getElementById('closeBrandModal').addEventListener('click', () => {
+                    this.hideBrandModal();
+                });
+
+                document.getElementById('cancelBrandBtn').addEventListener('click', () => {
+                    this.hideBrandModal();
+                });
+
+                // Form submission
+                document.getElementById('brandForm').addEventListener('submit', (e) => {
+                    this.handleBrandSubmit(e);
+                });
+
+                // Search functionality
+                document.getElementById('brandSearch').addEventListener('input', (e) => {
+                    this.filterBrands(e.target.value);
+                });
+
+                // Close modal when clicking outside
+                document.getElementById('brandModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'brandModal') {
+                        this.hideBrandModal();
+                    }
+                });
+            }
+
+            async loadBrands() {
+                try {
+                    const response = await fetch('/api/brands/all');
+                    if (!response.ok) throw new Error('Failed to load brands');
+                    
+                    this.brands = await response.json();
+                    this.filteredBrands = [...this.brands];
+                    this.renderBrands();
+                } catch (error) {
+                    console.error('Error loading brands:', error);
+                    showToast('Failed to load brands', 'error');
+                }
+            }
+
+            filterBrands(searchTerm) {
+                const term = searchTerm.toLowerCase().trim();
+                this.filteredBrands = this.brands.filter(brand => 
+                    brand.name.toLowerCase().includes(term)
+                );
+                this.renderBrands();
+            }
+
+            renderBrands() {
+                const container = document.getElementById('brandsGrid');
+                
+                if (this.filteredBrands.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No brands found</h3>
+                            <p>Try adjusting your search or add a new brand</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.filteredBrands.map(brand => `
+                    <div class="brand-card ${brand.is_active ? 'active' : 'inactive'}">
+                        <div class="brand-header">
+                            <h4 class="brand-name">${this.escapeHtml(brand.name)}</h4>
+                            <span class="brand-status ${brand.is_active ? 'active' : 'inactive'}">
+                                ${brand.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="brand-info">
+                            Added: ${new Date(brand.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="brand-actions">
+                            <button class="btn-edit" onclick="brandManager.editBrand(${brand.id})">
+                                Edit
+                            </button>
+                            <button class="btn-toggle" onclick="brandManager.toggleBrand(${brand.id})">
+                                ${brand.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="btn-delete" onclick="brandManager.deleteBrand(${brand.id})" 
+                                    ${this.isBrandUsed(brand.name) ? 'disabled title="Brand is in use"' : ''}>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            isBrandUsed(brandName) {
+                // This would need to be implemented based on your inventory items
+                // For now, we'll assume all brands might be used
+                return false; // You can enhance this by checking against inventory items
+            }
+
+            showBrandModal(brand = null) {
+                this.editingBrandId = brand ? brand.id : null;
+                
+                document.getElementById('brandModalTitle').textContent = 
+                    brand ? 'Edit Brand' : 'Add New Brand';
+                
+                document.getElementById('brandId').value = brand ? brand.id : '';
+                document.getElementById('brandName').value = brand ? brand.name : '';
+                document.getElementById('brandIsActive').checked = brand ? brand.is_active : true;
+                
+                document.getElementById('saveBrandBtn').textContent = 
+                    brand ? 'Update Brand' : 'Add Brand';
+                
+                document.getElementById('brandModal').style.display = 'block';
+                document.getElementById('brandName').focus();
+            }
+
+            hideBrandModal() {
+                document.getElementById('brandModal').style.display = 'none';
+                document.getElementById('brandForm').reset();
+                this.editingBrandId = null;
+            }
+
+            async handleBrandSubmit(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const brandData = {
+                    name: formData.get('brandName').trim(),
+                    is_active: formData.get('isActive') === 'on'
+                };
+                
+                if (!brandData.name) {
+                    showToast('Please enter a brand name', 'error');
+                    return;
+                }
+
+                try {
+                    const url = this.editingBrandId 
+                        ? `/api/brands/${this.editingBrandId}`
+                        : '/api/brands';
+                    
+                    const method = this.editingBrandId ? 'PUT' : 'POST';
+                    
+                    const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(brandData)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to save brand');
+                    }
+
+                    await this.loadBrands();
+                    this.hideBrandModal();
+                    
+                    showToast(
+                        this.editingBrandId ? 'Brand updated successfully!' : 'Brand added successfully!',
+                        'success'
+                    );
+                    
+                } catch (error) {
+                    console.error('Error saving brand:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            editBrand(brandId) {
+                const brand = this.brands.find(b => b.id === brandId);
+                if (brand) {
+                    this.showBrandModal(brand);
+                }
+            }
+
+            async toggleBrand(brandId) {
+                const brand = this.brands.find(b => b.id === brandId);
+                if (!brand) return;
+
+                try {
+                    const response = await fetch(`/api/brands/${brandId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_active: !brand.is_active })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to update brand');
+                    }
+
+                    await this.loadBrands();
+                    showToast(
+                        `Brand ${brand.is_active ? 'deactivated' : 'activated'} successfully!`,
+                        'success'
+                    );
+                    
+                } catch (error) {
+                    console.error('Error toggling brand:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            async deleteBrand(brandId) {
+                const brand = this.brands.find(b => b.id === brandId);
+                if (!brand) return;
+
+                if (!confirm(`Are you sure you want to delete "${brand.name}"? This action cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/brands/${brandId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to delete brand');
+                    }
+
+                    await this.loadBrands();
+                    showToast('Brand deleted successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('Error deleting brand:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Utility Functions
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
         // Initialize the application
-        const managementApp = new ManagementApp();
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize brand manager
+            window.brandManager = new BrandManager();
+            
+            // Load initial stats
+            loadStats();
+        });
     </script>
 </body>
 </html>

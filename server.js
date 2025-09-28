@@ -55,6 +55,7 @@ function initializeDatabase() {
             console.log('Database table initialized successfully');
             addSoldColumns();
             addPriceColumns();
+            addLocationSeasonColumns();
         }
     });
 }
@@ -96,6 +97,27 @@ function addPriceColumns() {
     });
 }
 
+// Add location, season, and platform columns
+function addLocationSeasonColumns() {
+    db.run('ALTER TABLE items ADD COLUMN location TEXT', (err) => {
+        if (err && !String(err.message).includes('duplicate column')) {
+            console.error('Error adding location column:', err.message);
+        }
+    });
+
+    db.run('ALTER TABLE items ADD COLUMN season TEXT', (err) => {
+        if (err && !String(err.message).includes('duplicate column')) {
+            console.error('Error adding season column:', err.message);
+        }
+    });
+
+    db.run('ALTER TABLE items ADD COLUMN platform TEXT DEFAULT "Vinted"', (err) => {
+        if (err && !String(err.message).includes('duplicate column')) {
+            console.error('Error adding platform column:', err.message);
+        }
+    });
+}
+
 // API Routes
 
 // Get all items
@@ -107,21 +129,21 @@ app.get('/api/items', (req, res) => {
     if (search && status) {
         sql = `
             SELECT * FROM items 
-            WHERE (name LIKE ? OR color LIKE ? OR size LIKE ? OR brand LIKE ?)
+            WHERE (name LIKE ? OR color LIKE ? OR size LIKE ? OR brand LIKE ? OR location LIKE ? OR season LIKE ? OR platform LIKE ?)
             AND is_sold = ?
             ORDER BY is_sold ASC, id DESC
         `;
         const searchValue = `%${search}%`;
         const soldStatus = status === 'sold' ? 1 : 0;
-        params = [searchValue, searchValue, searchValue, searchValue, soldStatus];
+        params = [searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, soldStatus];
     } else if (search) {
         sql = `
             SELECT * FROM items 
-            WHERE name LIKE ? OR color LIKE ? OR size LIKE ? OR brand LIKE ?
+            WHERE name LIKE ? OR color LIKE ? OR size LIKE ? OR brand LIKE ? OR location LIKE ? OR season LIKE ? OR platform LIKE ?
             ORDER BY is_sold ASC, id DESC
         `;
         const searchValue = `%${search}%`;
-        params = [searchValue, searchValue, searchValue, searchValue];
+        params = [searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue];
     } else if (status) {
         sql = 'SELECT * FROM items WHERE is_sold = ? ORDER BY id DESC';
         const soldStatus = status === 'sold' ? 1 : 0;
@@ -156,15 +178,28 @@ app.get('/api/items/:id', (req, res) => {
 
 // Add new item
 app.post('/api/items', (req, res) => {
-    const { name, color, size, brand, price, selling_price, bought_price, condition_item, description } = req.body;
+    const { 
+        name, 
+        color, 
+        size, 
+        brand, 
+        price, 
+        selling_price, 
+        bought_price, 
+        condition_item, 
+        description,
+        location,
+        season,
+        platform
+    } = req.body;
     
     if (!name || !color || !size) {
         return res.status(400).json({ error: 'Name, color, and size are required' });
     }
 
     const sql = `
-        INSERT INTO items (name, color, size, brand, selling_price, bought_price, condition_item, description, date_added)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (name, color, size, brand, selling_price, bought_price, condition_item, description, location, season, platform, date_added)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const selling = (selling_price ?? price);
@@ -177,6 +212,9 @@ app.post('/api/items', (req, res) => {
         bought_price !== undefined && bought_price !== '' ? parseFloat(bought_price) : null,
         condition_item || null,
         description || null,
+        location || null,
+        season || null,
+        platform || 'Vinted',
         new Date().toLocaleDateString()
     ];
 
@@ -197,7 +235,20 @@ app.post('/api/items', (req, res) => {
 // Update item
 app.put('/api/items/:id', (req, res) => {
     const { id } = req.params;
-    const { name, color, size, brand, price, selling_price, bought_price, condition_item, description } = req.body;
+    const { 
+        name, 
+        color, 
+        size, 
+        brand, 
+        price, 
+        selling_price, 
+        bought_price, 
+        condition_item, 
+        description,
+        location,
+        season,
+        platform
+    } = req.body;
     
     if (!name || !color || !size) {
         return res.status(400).json({ error: 'Name, color, and size are required' });
@@ -205,7 +256,8 @@ app.put('/api/items/:id', (req, res) => {
 
     const sql = `
         UPDATE items 
-        SET name = ?, color = ?, size = ?, brand = ?, selling_price = ?, bought_price = ?, condition_item = ?, description = ?
+        SET name = ?, color = ?, size = ?, brand = ?, selling_price = ?, bought_price = ?, 
+            condition_item = ?, description = ?, location = ?, season = ?, platform = ?
         WHERE id = ?
     `;
     
@@ -219,6 +271,9 @@ app.put('/api/items/:id', (req, res) => {
         bought_price !== undefined && bought_price !== '' ? parseFloat(bought_price) : null,
         condition_item || null,
         description || null,
+        location || null,
+        season || null,
+        platform || 'Vinted',
         id
     ];
 
