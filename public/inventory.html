@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table View - Vinted Inventory System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        h1 {
+            color: white;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .controls {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-input {
+            padding: 10px 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            width: 300px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .filter-select option {
+            background: #333;
+            color: white;
+        }
+
+        .stats {
+            background: rgba(255,255,255,0.1);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        th:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sort-indicator {
+            margin-left: 5px;
+            opacity: 0.5;
+        }
+
+        .sort-indicator.active {
+            opacity: 1;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        tbody tr.sold {
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+
+        tbody tr.sold:hover {
+            background: #e9ecef;
+        }
+
+        td {
+            padding: 12px;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .id-cell {
+            font-weight: 600;
+            color: #667eea;
+            font-family: monospace;
+        }
+
+        .name-cell {
+            font-weight: 600;
+            color: #333;
+            max-width: 250px;
+        }
+
+        .price-cell {
+            font-weight: 600;
+            color: #2ecc71;
+        }
+
+        .status-cell {
+            text-align: center;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-sold {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .description-cell {
+            max-width: 300px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s ease;
+        }
+
+        .close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .item-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .detail-section h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .detail-value {
+            color: #333;
+            text-align: right;
+        }
+
+        .description-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .qr-section {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .item-detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
+
+            .modal-header {
+                padding: 15px 20px;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 6px;
+            }
+        }
+
+        /* Hide certain columns on small screens */
+        @media (max-width: 600px) {
+            .hide-mobile {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 NewStart Inventory System</h1>
+            <div class="nav-buttons">
+                <button class="btn btn-secondary" onclick="tableApp.showAddItemModal()">➕ Add Item</button>
+                <a href="/manage" class="btn btn-secondary">⚙️ Management</a>
+                <a href="/insights" class="btn btn-secondary">📈 Insights</a>
+                <button class="btn btn-secondary" onclick="tableApp.downloadBackup()">📥 Backup</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="statsContainer">
+            <strong>Available: <span id="availableCount">0</span> | Sold: <span id="soldCount">0</span> | Total: <span id="totalCount">0</span></strong>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search items...">
+            <select id="statusFilter" class="filter-select">
+                <option value="all">All Items</option>
+                <option value="available">Available Only</option>
+                <option value="sold">Sold Only</option>
+            </select>
+            <button class="btn btn-small" onclick="tableApp.exportToCSV()">📄 Export CSV</button>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th onclick="tableApp.sortTable('id')">
+                                ID <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('name')">
+                                Name <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('color')">
+                                Color <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('size')">
+                                Size <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('brand')" class="hide-mobile">
+                                Brand <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('bought_price')">
+                                Bought For <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('selling_price')">
+                                Selling Price <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('condition_item')" class="hide-mobile">
+                                Condition <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('is_sold')">
+                                Status <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th onclick="tableApp.sortTable('date_added')" class="hide-mobile">
+                                Added <span class="sort-indicator">↕️</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="10" class="loading">Loading inventory...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Item Detail Modal -->
+        <div id="itemModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title" id="modalTitle">Item Details</div>
+                    <button class="close" onclick="tableApp.closeModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Item details will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Item Modal -->
+        <div id="addItemModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">Add New Item</div>
+                    <button class="close" onclick="tableApp.closeAddItemModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="addItemForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="itemName">Item Name *</label>
+                                <input type="text" id="itemName" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="itemColor">Color *</label>
+                                <input type="text" id="itemColor" name="color" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="itemSize">Size *</label>
+                                <select id="itemSize" name="size" required>
+                                    <option value="">Select Size</option>
+                                    <option value="XXS">XXS</option>
+                                    <option value="XS">XS</option>
+                                    <option value="S">S</option>
+                                    <option value="M">M</option>
+                                    <option value="L">L</option>
+                                    <option value="XL">XL</option>
+                                    <option value="XXL">XXL</option>
+                                    <option value="XXXL">XXXL</option>
+                                    <option value="One Size">One Size</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="itemBrand">Brand</label>
+                                <input type="text" id="itemBrand" name="brand">
+                            </div>
+                            <div class="form-group">
+                                <label for="itemBoughtPrice">Bought For (£)</label>
+                                <input type="number" id="itemBoughtPrice" name="bought_price" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="itemSellingPrice">Selling Price (£)</label>
+                                <input type="number" id="itemSellingPrice" name="selling_price" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="itemCondition">Condition</label>
+                                <select id="itemCondition" name="condition_item">
+                                    <option value="">Select Condition</option>
+                                    <option value="New with tags">New with tags</option>
+                                    <option value="New without tags">New without tags</option>
+                                    <option value="Very good">Very good</option>
+                                    <option value="Good">Good</option>
+                                    <option value="Satisfactory">Satisfactory</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemDescription">Description</label>
+                            <textarea id="itemDescription" name="description" placeholder="Additional details about the item..." rows="3"></textarea>
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button type="submit" class="btn" id="addItemButton">Add Item to Inventory</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TableApp {
+            constructor() {
+                this.items = [];
+                this.filteredItems = [];
+                this.sortColumn = 'id';
+                this.sortDirection = 'asc';
+                this.currentFilter = 'all';
+                this.searchTerm = '';
+                this.init();
+            }
+
+            async init() {
+                this.bindEvents();
+                await this.loadItems();
+                await this.loadStats();
+            }
+
+            bindEvents() {
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.searchTerm = e.target.value;
+                    this.filterAndDisplayItems();
+                });
+
+                document.getElementById('statusFilter').addEventListener('change', (e) => {
+                    this.currentFilter = e.target.value;
+                    this.filterAndDisplayItems();
+                });
+
+                // Close modal when clicking outside
+                document.getElementById('itemModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'itemModal') {
+                        this.closeModal();
+                    }
+                });
+
+                // Close add item modal when clicking outside
+                document.getElementById('addItemModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'addItemModal') {
+                        this.closeAddItemModal();
+                    }
+                });
+
+                // Add item form submission
+                document.getElementById('addItemForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleAddItem();
+                });
+            }
+
+            async apiCall(endpoint, options = {}) {
+                try {
+                    const response = await fetch(`/api${endpoint}`, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        ...options
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json().catch(() => ({ error: 'Network error' }));
+                        throw new Error(error.error || `HTTP ${response.status}`);
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Call error:', error);
+                    throw error;
+                }
+            }
+
+            async loadItems() {
+                try {
+                    this.items = await this.apiCall('/items');
+                    this.filterAndDisplayItems();
+                } catch (error) {
+                    document.getElementById('tableBody').innerHTML = `
+                        <tr><td colspan="10" class="empty-state">Error loading items</td></tr>
+                    `;
+                }
+            }
+
+            async loadStats() {
+                try {
+                    const stats = await this.apiCall('/stats');
+                    document.getElementById('totalCount').textContent = stats.totalItems;
+                    document.getElementById('availableCount').textContent = stats.availableItems;
+                    document.getElementById('soldCount').textContent = stats.soldItems;
+                } catch (error) {
+                    console.error('Failed to load stats:', error);
+                }
+            }
+
+            filterAndDisplayItems() {
+                let filtered = [...this.items];
+
+                // Apply status filter
+                if (this.currentFilter === 'available') {
+                    filtered = filtered.filter(item => !item.is_sold);
+                } else if (this.currentFilter === 'sold') {
+                    filtered = filtered.filter(item => item.is_sold);
+                }
+
+                // Apply search filter
+                if (this.searchTerm) {
+                    const term = this.searchTerm.toLowerCase();
+                    filtered = filtered.filter(item =>
+                        item.name?.toLowerCase().includes(term) ||
+                        item.color?.toLowerCase().includes(term) ||
+                        item.size?.toLowerCase().includes(term) ||
+                        item.brand?.toLowerCase().includes(term) ||
+                        item.description?.toLowerCase().includes(term)
+                    );
+                }
+
+                // Apply sorting
+                filtered.sort((a, b) => {
+                    let aVal = a[this.sortColumn] ?? '';
+                    let bVal = b[this.sortColumn] ?? '';
+
+                    // Handle numeric values
+                    if (['bought_price','selling_price','price','id'].includes(this.sortColumn)) {
+                        aVal = parseFloat(aVal) || 0;
+                        bVal = parseFloat(bVal) || 0;
+                    } else if (this.sortColumn === 'is_sold') {
+                        aVal = aVal ? 1 : 0;
+                        bVal = bVal ? 1 : 0;
+                    } else {
+                        aVal = aVal.toString().toLowerCase();
+                        bVal = bVal.toString().toLowerCase();
+                    }
+
+                    if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+
+                this.filteredItems = filtered;
+                this.displayItems();
+            }
+
+            displayItems() {
+                const tbody = document.getElementById('tableBody');
+                
+                if (this.filteredItems.length === 0) {
+                    tbody.innerHTML = `
+                        <tr><td colspan="10" class="empty-state">No items found</td></tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = this.filteredItems.map(item => {
+                    const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : '-';
+                    // support legacy 'price' by falling back if selling_price missing
+                    const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
+                    const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : '-';
+
+                    return `
+                    <tr class="${item.is_sold ? 'sold' : ''}" onclick="tableApp.showItemDetails(${item.id})">
+                        <td class="id-cell">#${String(item.id).padStart(3, '0')}</td>
+                        <td class="name-cell" title="${this.escapeHtml(item.name)}">${this.escapeHtml(item.name)}</td>
+                        <td title="${this.escapeHtml(item.color)}">${this.escapeHtml(item.color)}</td>
+                        <td>${this.escapeHtml(item.size)}</td>
+                        <td class="hide-mobile" title="${this.escapeHtml(item.brand || 'N/A')}">${this.escapeHtml(item.brand || 'N/A')}</td>
+                        <td class="price-cell">${bought}</td>
+                        <td class="price-cell">${selling}</td>
+                        <td class="hide-mobile" title="${this.escapeHtml(item.condition_item || 'N/A')}">${this.escapeHtml(item.condition_item || 'N/A')}</td>
+                        <td class="status-cell">
+                            <span class="status-badge ${item.is_sold ? 'status-sold' : 'status-available'}">
+                                ${item.is_sold ? 'SOLD' : 'AVAILABLE'}
+                            </span>
+                        </td>
+                        <td class="hide-mobile">${this.escapeHtml(item.date_added)}</td>
+                    </tr>
+                `;
+                }).join('');
+            }
+
+            sortTable(column) {
+                if (this.sortColumn === column) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = column;
+                    this.sortDirection = 'asc';
+                }
+
+                // Update sort indicators
+                document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                    indicator.classList.remove('active');
+                    indicator.textContent = '↕️';
+                });
+
+                const currentIndicator = document.querySelector(`th[onclick="tableApp.sortTable('${column}')"] .sort-indicator`);
+                if (currentIndicator) {
+                    currentIndicator.classList.add('active');
+                    currentIndicator.textContent = this.sortDirection === 'asc' ? '↑' : '↓';
+                }
+
+                this.filterAndDisplayItems();
+            }
+
+            async showItemDetails(itemId) {
+                try {
+                    const item = await this.apiCall(`/items/${itemId}`);
+                    this.renderItemModal(item);
+                    document.getElementById('itemModal').style.display = 'block';
+                } catch (error) {
+                    console.error('Failed to load item details:', error);
+                }
+            }
+
+            renderItemModal(item) {
+                const modalTitle = document.getElementById('modalTitle');
+                const modalBody = document.getElementById('modalBody');
+
+                modalTitle.textContent = `${item.name} (#${String(item.id).padStart(3, '0')})`;
+
+                const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : 'Not set';
+                const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
+                const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : 'Not set';
+
+                modalBody.innerHTML = `
+                    <div class="item-detail-grid">
+                        <div class="detail-section">
+                            <h4>📋 Basic Information</h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Name:</span>
+                                <span class="detail-value">${this.escapeHtml(item.name)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Color:</span>
+                                <span class="detail-value">${this.escapeHtml(item.color)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value">${this.escapeHtml(item.size)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Brand:</span>
+                                <span class="detail-value">${this.escapeHtml(item.brand || 'N/A')}</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <h4>💰 Pricing & Status</h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Bought For:</span>
+                                <span class="detail-value">${bought}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Selling Price:</span>
+                                <span class="detail-value">${selling}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Condition:</span>
+                                <span class="detail-value">${this.escapeHtml(item.condition_item || 'N/A')}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value">
+                                    <span class="status-badge ${item.is_sold ? 'status-sold' : 'status-available'}">
+                                        ${item.is_sold ? 'SOLD' : 'AVAILABLE'}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Date Added:</span>
+                                <span class="detail-value">${this.escapeHtml(item.date_added)}</span>
+                            </div>
+                            ${item.is_sold && item.sold_date ? `
+                                <div class="detail-row">
+                                    <span class="detail-label">Sold Date:</span>
+                                    <span class="detail-value">${this.escapeHtml(item.sold_date)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    ${item.description ? `
+                        <div class="description-section">
+                            <h4>📝 Description</h4>
+                            <p>${this.escapeHtml(item.description)}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="qr-section">
+                        <h4>📱 QR Code</h4>
+                        <div id="modalQR-${item.id}"></div>
+                        <p style="color: #666; margin-top: 10px;">Scan to view item details</p>
+                    </div>
+
+                    <div class="modal-actions">
+                        ${!item.is_sold ? `
+                            <button class="btn btn-small btn-success" onclick="tableApp.markAsSold(${item.id}, true)">
+                                💰 Mark as Sold
+                            </button>
+                        ` : `
+                            <button class="btn btn-small btn-warning" onclick="tableApp.markAsSold(${item.id}, false)">
+                                🔄 Mark as Available
+                            </button>
+                        `}
+                        <button class="btn btn-small btn-info" onclick="tableApp.printLabel(${item.id})">
+                            🏷️ Print Label
+                        </button>
+                        <button class="btn btn-small btn-danger" onclick="tableApp.deleteItem(${item.id})">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                `;
+
+                // Generate QR code
+                const qrContainer = document.getElementById(`modalQR-${item.id}`);
+                if (qrContainer) {
+                    const img = document.createElement('img');
+                    const url = `${window.location.origin}/#item-${item.id}`;
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=333333&margin=10&format=png`;
+                    
+                    img.src = qrUrl;
+                    img.width = 150;
+                    img.height = 150;
+                    img.alt = `QR Code for item ${item.id}`;
+                    img.style.border = '1px solid #ddd';
+                    img.style.borderRadius = '8px';
+                    qrContainer.appendChild(img);
+                }
+            }
+
+            async markAsSold(itemId, isSold) {
+                try {
+                    await this.apiCall(`/items/${itemId}/sold`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ is_sold: isSold })
+                    });
+                    
+                    this.closeModal();
+                    await this.loadItems();
+                    await this.loadStats();
+                } catch (error) {
+                    console.error('Failed to update item status:', error);
+                }
+            }
+
+            async deleteItem(itemId) {
+                if (!confirm('Are you sure you want to delete this item?')) return;
+
+                try {
+                    await this.apiCall(`/items/${itemId}`, { method: 'DELETE' });
+                    this.closeModal();
+                    await this.loadItems();
+                    await this.loadStats();
+                } catch (error) {
+                    console.error('Failed to delete item:', error);
+                }
+            }
+
+            async downloadBackup() {
+                try {
+                    const response = await fetch('/api/backup');
+                    if (!response.ok) throw new Error('Backup failed');
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `vinted-inventory-${new Date().toISOString().split('T')[0]}.db`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Failed to download backup:', error);
+                }
+            }
+
+            exportToCSV() {
+                const headers = ['ID', 'Name', 'Color', 'Size', 'Brand', 'Bought For', 'Selling Price', 'Condition', 'Status', 'Date Added', 'Sold Date', 'Description'];
+                const csvContent = [
+                    headers.join(','),
+                    ...this.filteredItems.map(item => {
+                        const selling = (item.selling_price ?? item.price) ?? '';
+                        return [
+                            item.id,
+                            `"${this.escapeCSV(item.name)}"`,
+                            `"${this.escapeCSV(item.color)}"`,
+                            `"${this.escapeCSV(item.size)}"`,
+                            `"${this.escapeCSV(item.brand || '')}"`,
+                            item.bought_price ?? '',
+                            selling,
+                            `"${this.escapeCSV(item.condition_item || '')}"`,
+                            item.is_sold ? 'SOLD' : 'AVAILABLE',
+                            `"${this.escapeCSV(item.date_added)}"`,
+                            `"${this.escapeCSV(item.sold_date || '')}"`,
+                            `"${this.escapeCSV(item.description || '')}"`
+                        ].join(',');
+                    })
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vinted-inventory-table-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+
+            printLabel(itemId) {
+                // Open the management page with a focus on this item
+                window.location.href = `/manage#item-${itemId}`;
+            }
+
+            closeModal() {
+                document.getElementById('itemModal').style.display = 'none';
+            }
+
+            showAddItemModal() {
+                document.getElementById('addItemModal').style.display = 'block';
+            }
+
+            closeAddItemModal() {
+                document.getElementById('addItemModal').style.display = 'none';
+                // Reset form
+                document.getElementById('addItemForm').reset();
+            }
+
+            async handleAddItem() {
+                const form = document.getElementById('addItemForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                // Remove empty values
+                Object.keys(data).forEach(key => {
+                    if (data[key] === '') {
+                        delete data[key];
+                    }
+                });
+
+                const button = document.getElementById('addItemButton');
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Adding...';
+
+                try {
+                    const result = await this.apiCall('/items', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    // Success - close modal, refresh data, show success message
+                    this.closeAddItemModal();
+                    await this.loadItems();
+                    await this.loadStats();
+                    
+                    // Show success message with a simple notification
+                    this.showNotification('Item added successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Failed to add item:', error);
+                    this.showNotification('Failed to add item', 'error');
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            }
+
+            showNotification(message, type = 'success') {
+                // Remove existing notifications
+                const existing = document.querySelectorAll('.notification');
+                existing.forEach(n => n.remove());
+
+                // Create notification
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.textContent = message;
+                
+                // Style notification
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 600;
+                    z-index: 10001;
+                    animation: slideInNotification 0.3s ease;
+                    max-width: 300px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                `;
+
+                // Set background color
+                const colors = {
+                    success: '#4CAF50',
+                    error: '#f44336',
+                    info: '#2196F3'
+                };
+                notification.style.backgroundColor = colors[type] || colors.info;
+
+                // Add animation
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes slideInNotification {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+
+                document.body.appendChild(notification);
+
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    notification.style.animation = 'slideInNotification 0.3s ease reverse';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+
+            escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            escapeCSV(text) {
+                if (!text) return '';
+                return text.toString().replace(/"/g, '""');
+            }
+        }
+
+        // Initialize the application
+        const tableApp = new TableApp();
+    </script>
+</body>
+</html>

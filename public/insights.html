@@ -1,0 +1,474 @@
+<!-- public/insights.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Insights - Vinted Inventory System</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .header {
+      display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom: 24px;
+    }
+    h1 { margin:0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,.25); }
+    .nav-buttons { display:flex; gap:12px; flex-wrap:wrap; }
+    .btn {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.25);
+      color: #fff; padding: 10px 16px; border-radius:10px;
+      font-weight:600; text-decoration:none; display:inline-block; cursor:pointer;
+      transition: transform .2s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.45);}
+    .kpi-grid {
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:16px; margin-bottom: 24px;
+    }
+    .kpi {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+      padding:18px; border-radius:14px; backdrop-filter: blur(8px);
+    }
+    .kpi .label { font-size:.9rem; opacity:.9; text-transform: uppercase; letter-spacing:.5px;}
+    .kpi .value { font-size:1.8rem; font-weight:800; margin-top:6px; }
+    .kpi .sub { font-size:.85rem; opacity:.85; margin-top:6px;}
+    .card-grid { display:grid; grid-template-columns: 1fr; gap: 18px; }
+    @media (min-width: 900px) { .card-grid { grid-template-columns: 1.2fr .8fr; } }
+    .card {
+      background:#fff; color:#222; border-radius:16px; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,.15);
+    }
+    .card-header { padding:14px 16px; font-weight:700; background: linear-gradient(135deg,#667eea,#764ba2); color:#fff;}
+    .card-body { padding:16px; }
+    .flex { display:flex; gap:16px; flex-wrap:wrap; }
+    .muted { opacity:.8; font-size:.9rem; }
+    .table {
+      width:100%; border-collapse: collapse; font-size:.95rem;
+    }
+    .table th, .table td { padding:10px 8px; border-bottom:1px solid #eee; }
+    .chip {
+      display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#3949ab; font-weight:700; font-size:.8rem;
+    }
+    .row { display:grid; grid-template-columns: 1fr; gap:18px; }
+    @media (min-width: 900px) { .row { grid-template-columns: 1fr 1fr; } }
+    .footer { text-align:center; margin:28px 0 12px; opacity:.85; font-size:.9rem; }
+    canvas { width:100%; height: 320px; }
+    .controls {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 12px; border-radius: 12px; margin-bottom: 18px;
+      display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+    }
+    .select, .input {
+      background: rgba(255,255,255,0.1); color:#fff; border: 1px solid rgba(255,255,255,0.35);
+      padding:8px 10px; border-radius:8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📈 Inventory Insights</h1>
+      <div class="nav-buttons">
+        <a class="btn" href="/">📊 Inventory</a>
+        <a class="btn" href="/manage">⚙️ Management</a>
+        <button class="btn" id="exportCsvBtn">📄 Export Insights CSV</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <span class="muted">Filters:</span>
+      <label>
+        <span class="muted">Range (months):</span>
+        <select id="rangeMonths" class="select">
+          <option value="6">Last 6</option>
+          <option value="12" selected>Last 12</option>
+          <option value="24">Last 24</option>
+          <option value="36">Last 36</option>
+          <option value="0">All Time</option>
+        </select>
+      </label>
+      <label>
+        <span class="muted">Status:</span>
+        <select id="statusFilter" class="select">
+          <option value="sold" selected>Sold only</option>
+          <option value="all">All items</option>
+          <option value="available">Available only</option>
+        </select>
+      </label>
+      <label>
+        <span class="muted">Brand:</span>
+        <input id="brandFilter" class="input" placeholder="e.g. Nike"/>
+      </label>
+      <button class="btn" id="applyFiltersBtn">Apply</button>
+      <button class="btn" id="resetFiltersBtn">Reset</button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi">
+        <div class="label">Revenue</div>
+        <div class="value" id="kpiRevenue">£0.00</div>
+        <div class="sub muted" id="kpiRevenueSub">From sold items</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Cost (COGS)</div>
+        <div class="value" id="kpiCost">£0.00</div>
+        <div class="sub muted">Bought price for sold items</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Gross Profit</div>
+        <div class="value" id="kpiProfit">£0.00</div>
+        <div class="sub muted" id="kpiMargin">Margin — 0%</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Sell-through</div>
+        <div class="value" id="kpiSellThrough">0%</div>
+        <div class="sub muted" id="kpiCounts">0 sold / 0 total</div>
+      </div>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header">Revenue & Profit by Month</div>
+        <div class="card-body">
+          <canvas id="revProfitChart"></canvas>
+          <div class="muted" style="margin-top:8px">Shows totals for each month in range.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Brand Mix (Sold Items)</div>
+        <div class="card-body">
+          <canvas id="brandChart"></canvas>
+          <div class="muted" style="margin-top:8px">Distribution of sold items by brand.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: 18px;">
+      <div class="card">
+        <div class="card-header">Top Brands (by Revenue)</div>
+        <div class="card-body">
+          <table class="table" id="topBrandsTable">
+            <thead>
+              <tr><th>Brand</th><th>Revenue</th><th>Units Sold</th><th>Avg Selling</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Velocity (Days to Sell)</div>
+        <div class="card-body">
+          <canvas id="velocityChart"></canvas>
+          <div class="muted" style="margin-top:8px">Days between date added and sold date (sold items only).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer muted">Data sourced from /api/items · Charts by Chart.js</div>
+  </div>
+
+  <script>
+    class InsightsApp {
+      constructor() {
+        this.items = [];
+        this.filtered = [];
+        this.revProfitChart = null;
+        this.brandChart = null;
+        this.velocityChart = null;
+
+        this.$ = (id) => document.getElementById(id);
+        this.bind();
+        this.load();
+      }
+
+      bind() {
+        this.$('applyFiltersBtn').addEventListener('click', () => this.applyFilters());
+        this.$('resetFiltersBtn').addEventListener('click', () => this.resetFilters());
+        this.$('exportCsvBtn').addEventListener('click', () => this.exportInsightsCSV());
+      }
+
+      async api(endpoint) {
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error('Network error');
+        return res.json();
+        }
+
+      async load() {
+        try {
+          this.items = await this.api('/api/items');
+          this.applyFilters();
+        } catch (e) {
+          console.error(e);
+          alert('Failed to load data');
+        }
+      }
+
+      resetFilters() {
+        this.$('rangeMonths').value = '12';
+        this.$('statusFilter').value = 'sold';
+        this.$('brandFilter').value = '';
+        this.applyFilters();
+      }
+
+      applyFilters() {
+        const months = parseInt(this.$('rangeMonths').value, 10);
+        const status = this.$('statusFilter').value;
+        const brand = (this.$('brandFilter').value || '').trim().toLowerCase();
+
+        let data = [...this.items];
+
+        if (status === 'sold') data = data.filter(i => !!i.is_sold);
+        if (status === 'available') data = data.filter(i => !i.is_sold);
+
+        if (brand) data = data.filter(i => (i.brand || '').toLowerCase().includes(brand));
+
+        // Range filter based on sold_date (for sold) or date_added (for others)
+        const now = new Date();
+        if (months > 0) {
+          const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+          data = data.filter(i => {
+            const d = this.parseSmartDate(i.is_sold ? i.sold_date : i.date_added);
+            return d ? d >= start : true;
+          });
+        }
+
+        this.filtered = data;
+        this.render();
+      }
+
+      // Robust parse for "dd/mm/yyyy" or "mm/dd/yyyy" or ISO
+      parseSmartDate(s) {
+        if (!s) return null;
+        const d1 = new Date(s);
+        if (!isNaN(d1)) return d1;
+        // try dd/mm/yyyy
+        const m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+        if (m) {
+          const dd = parseInt(m[1], 10);
+          const mm = parseInt(m[2], 10);
+          const yyyy = m[3].length === 2 ? (2000 + parseInt(m[3],10)) : parseInt(m[3],10);
+          const d = new Date(yyyy, mm - 1, dd);
+          return isNaN(d) ? null : d;
+        }
+        return null;
+      }
+
+      currency(n) { return '£' + (Number(n || 0)).toFixed(2); }
+
+      render() {
+        const total = this.items.length;
+        const sold = this.items.filter(i => !!i.is_sold).length;
+        const sellThrough = total ? (sold / total) * 100 : 0;
+
+        // Revenue/COGS/Profit from SOLD items in filtered set
+        const soldOnly = this.filtered.filter(i => !!i.is_sold);
+        const getSelling = (i) => (i.selling_price != null ? i.selling_price : i.price) || 0;
+        const revenue = soldOnly.reduce((a,i) => a + (parseFloat(getSelling(i)) || 0), 0);
+        const cogs = soldOnly.reduce((a,i) => a + (parseFloat(i.bought_price) || 0), 0);
+        const profit = revenue - cogs;
+        const margin = revenue ? (profit / revenue) * 100 : 0;
+
+        // KPIs
+        this.$('kpiRevenue').textContent = this.currency(revenue);
+        this.$('kpiCost').textContent = this.currency(cogs);
+        this.$('kpiProfit').textContent = this.currency(profit);
+        this.$('kpiMargin').textContent = `Margin — ${margin.toFixed(1)}%`;
+        this.$('kpiSellThrough').textContent = `${sellThrough.toFixed(1)}%`;
+        this.$('kpiCounts').textContent = `${sold} sold / ${total} total`;
+
+        // Monthly series
+        const byMonth = this.groupByMonth(this.filtered);
+        this.renderRevProfitChart(byMonth);
+
+        // Brand chart & top brands (sold items)
+        const byBrand = this.groupBrand(soldOnly);
+        this.renderBrandChart(byBrand);
+        this.renderTopBrandsTable(byBrand);
+
+        // Velocity chart (days to sell)
+        const velocities = soldOnly.map(i => {
+          const added = this.parseSmartDate(i.date_added);
+          const soldD = this.parseSmartDate(i.sold_date);
+          if (!added || !soldD) return null;
+          const diff = (soldD - added) / (1000*60*60*24);
+          return diff >= 0 ? Math.round(diff) : null;
+        }).filter(v => v != null);
+        this.renderVelocityChart(velocities);
+      }
+
+      groupByMonth(data) {
+        // key: yyyy-mm
+        const map = new Map();
+        const selling = (i) => (i.selling_price != null ? i.selling_price : i.price) || 0;
+
+        for (const i of data) {
+          const d = this.parseSmartDate(i.is_sold ? i.sold_date : i.date_added);
+          if (!d) continue;
+          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+          if (!map.has(key)) map.set(key, { revenue:0, profit:0, cogs:0, count:0 });
+          const row = map.get(key);
+          const rev = i.is_sold ? Number(selling(i)) : 0;
+          const cost = i.is_sold ? Number(i.bought_price || 0) : 0;
+          row.revenue += rev;
+          row.cogs += cost;
+          row.profit += (rev - cost);
+          row.count += 1;
+        }
+
+        // sort by month ascending
+        return Array.from(map.entries())
+          .sort((a,b) => a[0].localeCompare(b[0]))
+          .map(([k,v]) => ({ month:k, ...v }));
+      }
+
+      groupBrand(soldItems) {
+        const map = new Map();
+        for (const i of soldItems) {
+          const b = (i.brand || 'Unbranded').trim();
+          if (!map.has(b)) map.set(b, { brand: b, revenue:0, units:0, avg:0 });
+          const row = map.get(b);
+          const selling = (i.selling_price != null ? i.selling_price : i.price) || 0;
+          row.revenue += Number(selling) || 0;
+          row.units += 1;
+        }
+        for (const v of map.values()) v.avg = v.units ? v.revenue / v.units : 0;
+        // sort by revenue desc
+        return Array.from(map.values()).sort((a,b) => b.revenue - a.revenue);
+      }
+
+      renderRevProfitChart(series) {
+        const labels = series.map(s => s.month);
+        const revenue = series.map(s => Number(s.revenue.toFixed(2)));
+        const profit = series.map(s => Number(s.profit.toFixed(2)));
+
+        const ctx = document.getElementById('revProfitChart');
+        if (this.revProfitChart) this.revProfitChart.destroy();
+        this.revProfitChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Revenue', data: revenue },
+              { label: 'Profit', data: profit }
+            ]
+          },
+          options: {
+            responsive:true,
+            plugins: { legend: { position:'top' } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (v) => '£' + v
+                }
+              }
+            }
+          }
+        });
+      }
+
+      renderBrandChart(rows) {
+        const top = rows.slice(0, 10);
+        const labels = top.map(r => r.brand);
+        const values = top.map(r => Number(r.units));
+
+        const ctx = document.getElementById('brandChart');
+        if (this.brandChart) this.brandChart.destroy();
+        this.brandChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: { labels, datasets: [{ data: values }] },
+          options: { responsive:true, plugins:{ legend:{ position:'right' } } }
+        });
+      }
+
+      renderVelocityChart(daysArr) {
+        // bucketize
+        const buckets = [
+          { label:'0-3d', from:0, to:3 },
+          { label:'4-7d', from:4, to:7 },
+          { label:'8-14d', from:8, to:14 },
+          { label:'15-30d', from:15, to:30 },
+          { label:'31-60d', from:31, to:60 },
+          { label:'61-90d', from:61, to:90 },
+          { label:'90d+', from:91, to: Infinity },
+        ];
+        const counts = buckets.map(b => 0);
+        for (const d of daysArr) {
+          const idx = buckets.findIndex(b => d >= b.from && d <= b.to);
+          if (idx >= 0) counts[idx] += 1;
+        }
+
+        const ctx = document.getElementById('velocityChart');
+        if (this.velocityChart) this.velocityChart.destroy();
+        this.velocityChart = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: buckets.map(b => b.label), datasets: [{ label:'Units', data: counts }] },
+          options: { responsive:true, plugins:{ legend:{ display:false } } }
+        });
+      }
+
+      renderTopBrandsTable(rows) {
+        const tbody = document.querySelector('#topBrandsTable tbody');
+        tbody.innerHTML = rows.slice(0, 10).map(r => `
+          <tr>
+            <td>${this.escape(r.brand)}</td>
+            <td>${this.currency(r.revenue)}</td>
+            <td><span class="chip">${r.units}</span></td>
+            <td>${this.currency(r.avg)}</td>
+          </tr>
+        `).join('') || `<tr><td colspan="4" class="muted">No data</td></tr>`;
+      }
+
+      exportInsightsCSV() {
+        const soldOnly = this.filtered.filter(i => !!i.is_sold);
+        const lines = [];
+        lines.push(['Metric','Value'].join(','));
+        // KPIs
+        const selling = (i) => (i.selling_price != null ? i.selling_price : i.price) || 0;
+        const revenue = soldOnly.reduce((a,i)=>a+(+selling(i)||0),0);
+        const cogs = soldOnly.reduce((a,i)=>a+(+i.bought_price||0),0);
+        const profit = revenue - cogs;
+        const margin = revenue ? (profit/revenue)*100 : 0;
+        lines.push(['Revenue', revenue.toFixed(2)].join(','));
+        lines.push(['COGS', cogs.toFixed(2)].join(','));
+        lines.push(['Gross Profit', profit.toFixed(2)].join(','));
+        lines.push(['Margin %', margin.toFixed(1)].join(','));
+
+        // Brand table
+        lines.push([]);
+        lines.push(['Brand','Revenue','Units','Avg Selling'].join(','));
+        const brands = this.groupBrand(soldOnly);
+        for (const b of brands) {
+          lines.push([
+            `"${this.escapeCSV(b.brand)}"`,
+            b.revenue.toFixed(2),
+            b.units,
+            b.avg.toFixed(2)
+          ].join(','));
+        }
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const today = new Date().toISOString().split('T')[0];
+        a.href = url; a.download = `inventory-insights-${today}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      escape(s){ const d=document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+      escapeCSV(s){ return String(s ?? '').replace(/"/g,'""'); }
+    }
+
+    new InsightsApp();
+  </script>
+</body>
+</html>
