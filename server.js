@@ -12,6 +12,7 @@ const DB_PATH = process.env.DB_PATH || './data/inventory.db';
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static('public'));
 
 // Ensure data directory exists
 const dataDir = path.dirname(DB_PATH);
@@ -31,7 +32,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
 // Create tables if they don't exist
 function initializeDatabase() {
-    const createTableSQL = `
+    const createItemsTableSQL = `
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -44,110 +45,121 @@ function initializeDatabase() {
             date_added TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             is_sold BOOLEAN DEFAULT 0,
-            sold_date TEXT
+            sold_date TEXT,
+            bought_price DECIMAL(10,2),
+            selling_price DECIMAL(10,2),
+            location TEXT,
+            season TEXT,
+            platform TEXT DEFAULT 'Vinted'
+        );
+    `;
+
+    const createBrandsTableSQL = `
+        CREATE TABLE IF NOT EXISTS brands (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1
         );
     `;
     
-    db.run(createTableSQL, (err) => {
+    db.run(createItemsTableSQL, (err) => {
         if (err) {
-            console.error('Error creating table:', err.message);
+            console.error('Error creating items table:', err.message);
         } else {
-            console.log('Database table initialized successfully');
-            addSoldColumns();
-            addPriceColumns();
-            addLocationSeasonColumns();
+            console.log('Items table initialized successfully');
         }
     });
-}
 
-// Add sold columns to existing database
-function addSoldColumns() {
-    db.run('ALTER TABLE items ADD COLUMN is_sold BOOLEAN DEFAULT 0', (err) => {
-        if (err && !String(err.message).includes('duplicate column')) {
-            console.error('Error adding is_sold column:', err.message);
-        }
-    });
-    
-    db.run('ALTER TABLE items ADD COLUMN sold_date TEXT', (err) => {
-        if (err && !String(err.message).includes('duplicate column')) {
-            console.error('Error adding sold_date column:', err.message);
-        }
-    });
-}
-
-// Add pricing columns & migrate legacy price -> selling_price
-function addPriceColumns() {
-    db.run('ALTER TABLE items ADD COLUMN selling_price REAL', (err) => {
-        if (err && !String(err.message).includes('duplicate column')) {
-            console.error('Error adding selling_price column:', err.message);
+    db.run(createBrandsTableSQL, (err) => {
+        if (err) {
+            console.error('Error creating brands table:', err.message);
         } else {
-            db.run(
-                'UPDATE items SET selling_price = price WHERE selling_price IS NULL AND price IS NOT NULL',
-                (e) => {
-                    if (e) console.error('Error migrating price to selling_price:', e.message);
-                }
-            );
+            console.log('Brands table initialized successfully');
+            addDefaultBrands();
         }
     });
 
-    db.run('ALTER TABLE items ADD COLUMN bought_price REAL', (err) => {
-        if (err && !String(err.message).includes('duplicate column')) {
-            console.error('Error adding bought_price column:', err.message);
+    // Add columns that might not exist in older databases
+    addMissingColumns();
+}
+
+// Add default brands
+function addDefaultBrands() {
+    const defaultBrands = [
+        'Nike', 'Adidas', 'Zara', 'H&M', 'Uniqlo', 'Levi\'s', 'Gap', 'Forever 21',
+        'Topshop', 'ASOS', 'Mango', 'Primark', 'New Look', 'Next', 'Marks & Spencer',
+        'River Island', 'Urban Outfitters', 'Pull & Bear', 'Bershka', 'Stradivarius',
+        'Calvin Klein', 'Ralph Lauren', 'Tommy Hilfiger', 'Puma', 'Under Armour',
+        'New Balance', 'Converse', 'Vans', 'Boohoo', 'PrettyLittleThing'
+    ];
+
+    defaultBrands.forEach(brandName => {
+        db.run('INSERT OR IGNORE INTO brands (name) VALUES (?)', [brandName], (err) => {
+            if (err && !err.message.includes('UNIQUE constraint failed')) {
+                console.error('Error adding default brand:', brandName, err.message);
+            }
+        });
+    });
+}
+
+// Add missing columns for older databases
+function addMissingColumns() {
+    const columnsToAdd = [
+        { column: 'is_sold', type: 'BOOLEAN DEFAULT 0' },
+        { column: 'sold_date', type: 'TEXT' },
+        { column: 'bought_price', type: 'DECIMAL(10,2)' },
+        { column: 'selling_price', type: 'DECIMAL(10,2)' },
+        { column: 'location', type: 'TEXT' },
+        { column: 'season', type: 'TEXT' },
+        { column: 'platform', type: 'TEXT DEFAULT "Vinted"' }
+    ];
+
+    columnsToAdd.forEach(({ column, type }) => {
+        db.run(`ALTER TABLE items ADD COLUMN ${column} ${type}`, (err) => {
+            if (err && !err.message.includes('duplicate column name')) {
+                console.error(`Error adding column ${column}:`, err.message);
+            } else if (!err) {
+                console.log(`Added column ${column} to items table`);
+            }
+        });
+    });
+
+    // Add is_active column to brands table
+    db.run('ALTER TABLE brands ADD COLUMN is_active BOOLEAN DEFAULT 1', (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+            console.error('Error adding is_active column to brands:', err.message);
         }
     });
 }
 
-// Add location, season, and platform columns
-function addLocationSeasonColumns() {
-    db.run('ALTER TABLE items ADD COLUMN location TEXT', (err) => {
-        if (err && !String(err.message).includes('duplicate column')) {
-            console.error('Error adding location column:', err.message);
-        }
-    });
-
-    db.run('ALTER TABLE items ADD COLUMN season TEXT', (err) => {
-        if (err && !String(err.message).includes('duplicate column')) {
-            console.error('Error adding season column:', err.message);
-        }
-    });
-
-    db.run('ALTER TABLE items ADD COLUMN platform TEXT DEFAULT "Vinted"', (err) => {
-        if (err && !String(err.message).includes('duplicate column')) {
-            console.error('Error adding platform column:', err.message);
-        }
-    });
-}
-
-// API Routes
+// ================================
+// ITEM API ROUTES
+// ================================
 
 // Get all items
 app.get('/api/items', (req, res) => {
     const { search, status } = req.query;
-    let sql = 'SELECT * FROM items ORDER BY is_sold ASC, id DESC';
+    let sql = 'SELECT * FROM items ORDER BY id DESC';
     let params = [];
 
-    if (search && status) {
-        sql = `
-            SELECT * FROM items 
-            WHERE (name LIKE ? OR color LIKE ? OR size LIKE ? OR brand LIKE ? OR location LIKE ? OR season LIKE ? OR platform LIKE ?)
-            AND is_sold = ?
-            ORDER BY is_sold ASC, id DESC
-        `;
+    // Build WHERE conditions
+    const conditions = [];
+    
+    if (status === 'sold') {
+        conditions.push('is_sold = 1');
+    } else if (status === 'available') {
+        conditions.push('(is_sold = 0 OR is_sold IS NULL)');
+    }
+
+    if (search) {
+        conditions.push('(name LIKE ? OR color LIKE ? OR size LIKE ? OR brand LIKE ? OR description LIKE ? OR location LIKE ?)');
         const searchValue = `%${search}%`;
-        const soldStatus = status === 'sold' ? 1 : 0;
-        params = [searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, soldStatus];
-    } else if (search) {
-        sql = `
-            SELECT * FROM items 
-            WHERE name LIKE ? OR color LIKE ? OR size LIKE ? OR brand LIKE ? OR location LIKE ? OR season LIKE ? OR platform LIKE ?
-            ORDER BY is_sold ASC, id DESC
-        `;
-        const searchValue = `%${search}%`;
-        params = [searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue];
-    } else if (status) {
-        sql = 'SELECT * FROM items WHERE is_sold = ? ORDER BY id DESC';
-        const soldStatus = status === 'sold' ? 1 : 0;
-        params = [soldStatus];
+        params.push(searchValue, searchValue, searchValue, searchValue, searchValue, searchValue);
+    }
+
+    if (conditions.length > 0) {
+        sql = `SELECT * FROM items WHERE ${conditions.join(' AND ')} ORDER BY id DESC`;
     }
 
     db.all(sql, params, (err, rows) => {
@@ -176,57 +188,40 @@ app.get('/api/items/:id', (req, res) => {
     });
 });
 
-// Add new item
+// Create new item
 app.post('/api/items', (req, res) => {
-    const { 
-        name, 
-        color, 
-        size, 
-        brand, 
-        price, 
-        selling_price, 
-        bought_price, 
-        condition_item, 
-        description,
-        location,
-        season,
-        platform
+    const {
+        name, color, size, brand, price, condition_item, description,
+        bought_price, selling_price, location, season, platform
     } = req.body;
-    
+
     if (!name || !color || !size) {
         return res.status(400).json({ error: 'Name, color, and size are required' });
     }
 
-    const sql = `
-        INSERT INTO items (name, color, size, brand, selling_price, bought_price, condition_item, description, location, season, platform, date_added)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    const dateAdded = new Date().toISOString().split('T')[0];
     
-    const selling = (selling_price ?? price);
-    const values = [
-        name,
-        color,
-        size,
-        brand || null,
-        selling !== undefined && selling !== '' ? parseFloat(selling) : null,
-        bought_price !== undefined && bought_price !== '' ? parseFloat(bought_price) : null,
-        condition_item || null,
-        description || null,
-        location || null,
-        season || null,
-        platform || 'Vinted',
-        new Date().toLocaleDateString()
+    const sql = `
+        INSERT INTO items (
+            name, color, size, brand, price, condition_item, description, date_added,
+            bought_price, selling_price, location, season, platform
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const params = [
+        name, color, size, brand || null, price || null, condition_item || null,
+        description || null, dateAdded, bought_price || null, selling_price || null,
+        location || null, season || null, platform || 'Vinted'
     ];
 
-    db.run(sql, values, function(err) {
+    db.run(sql, params, function(err) {
         if (err) {
-            console.error('Error adding item:', err.message);
-            res.status(500).json({ error: 'Failed to add item' });
+            console.error('Error creating item:', err.message);
+            res.status(500).json({ error: 'Failed to create item' });
         } else {
-            res.json({ 
+            res.status(201).json({ 
                 id: this.lastID,
-                message: 'Item added successfully',
-                url: `${req.protocol}://${req.get('host')}/#item-${this.lastID}`
+                message: 'Item created successfully'
             });
         }
     });
@@ -235,47 +230,36 @@ app.post('/api/items', (req, res) => {
 // Update item
 app.put('/api/items/:id', (req, res) => {
     const { id } = req.params;
-    const { 
-        name, 
-        color, 
-        size, 
-        brand, 
-        price, 
-        selling_price, 
-        bought_price, 
-        condition_item, 
-        description,
-        location,
-        season,
-        platform
-    } = req.body;
-    
-    if (!name || !color || !size) {
-        return res.status(400).json({ error: 'Name, color, and size are required' });
+    const updates = req.body;
+
+    // Remove id from updates if present
+    delete updates.id;
+
+    if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
     }
 
-    const sql = `
-        UPDATE items 
-        SET name = ?, color = ?, size = ?, brand = ?, selling_price = ?, bought_price = ?, 
-            condition_item = ?, description = ?, location = ?, season = ?, platform = ?
-        WHERE id = ?
-    `;
-    
-    const selling = (selling_price ?? price);
-    const values = [
-        name,
-        color,
-        size,
-        brand || null,
-        selling !== undefined && selling !== '' ? parseFloat(selling) : null,
-        bought_price !== undefined && bought_price !== '' ? parseFloat(bought_price) : null,
-        condition_item || null,
-        description || null,
-        location || null,
-        season || null,
-        platform || 'Vinted',
-        id
+    const allowedFields = [
+        'name', 'color', 'size', 'brand', 'price', 'condition_item', 'description',
+        'bought_price', 'selling_price', 'location', 'season', 'platform', 'is_sold'
     ];
+
+    const fields = [];
+    const values = [];
+
+    Object.keys(updates).forEach(key => {
+        if (allowedFields.includes(key)) {
+            fields.push(`${key} = ?`);
+            values.push(updates[key]);
+        }
+    });
+
+    if (fields.length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    values.push(id);
+    const sql = `UPDATE items SET ${fields.join(', ')} WHERE id = ?`;
 
     db.run(sql, values, function(err) {
         if (err) {
@@ -287,6 +271,33 @@ app.put('/api/items/:id', (req, res) => {
             res.json({ message: 'Item updated successfully' });
         }
     });
+});
+
+// Mark item as sold/unsold
+app.patch('/api/items/:id/sold', (req, res) => {
+    const { id } = req.params;
+    const { is_sold } = req.body;
+    
+    const soldDate = is_sold ? new Date().toISOString().split('T')[0] : null;
+    
+    db.run(
+        'UPDATE items SET is_sold = ?, sold_date = ? WHERE id = ?',
+        [is_sold ? 1 : 0, soldDate, id],
+        function(err) {
+            if (err) {
+                console.error('Error updating item status:', err.message);
+                res.status(500).json({ error: 'Failed to update item status' });
+            } else if (this.changes === 0) {
+                res.status(404).json({ error: 'Item not found' });
+            } else {
+                res.json({ 
+                    message: `Item marked as ${is_sold ? 'sold' : 'available'}`,
+                    is_sold: is_sold,
+                    sold_date: soldDate
+                });
+            }
+        }
+    );
 });
 
 // Delete item
@@ -305,118 +316,750 @@ app.delete('/api/items/:id', (req, res) => {
     });
 });
 
-// Mark item as sold/unsold
-app.patch('/api/items/:id/sold', (req, res) => {
-    const { id } = req.params;
-    const { is_sold } = req.body;
+// ================================
+// BRAND API ROUTES
+// ================================
+
+// Get all active brands for dropdown
+app.get('/api/brands', (req, res) => {
+    db.all(
+        'SELECT id, name FROM brands WHERE is_active = 1 ORDER BY name ASC',
+        [],
+        (err, rows) => {
+            if (err) {
+                console.error('Error fetching brands:', err.message);
+                res.status(500).json({ error: 'Failed to fetch brands' });
+            } else {
+                res.json(rows);
+            }
+        }
+    );
+});
+
+// Get all brands (including inactive) for management
+app.get('/api/brands/all', (req, res) => {
+    db.all(
+        'SELECT id, name, is_active, created_at FROM brands ORDER BY name ASC',
+        [],
+        (err, rows) => {
+            if (err) {
+                console.error('Error fetching all brands:', err.message);
+                res.status(500).json({ error: 'Failed to fetch brands' });
+            } else {
+                res.json(rows);
+            }
+        }
+    );
+});
+
+// Add new brand
+app.post('/api/brands', (req, res) => {
+    const { name, is_active = true } = req.body;
     
-    const soldDate = is_sold ? new Date().toLocaleDateString() : null;
+    if (!name || name.trim() === '') {
+        return res.status(400).json({ error: 'Brand name is required' });
+    }
+
+    const trimmedName = name.trim();
     
-    const sql = 'UPDATE items SET is_sold = ?, sold_date = ? WHERE id = ?';
-    
-    db.run(sql, [is_sold ? 1 : 0, soldDate, id], function(err) {
+    // Check if brand already exists
+    db.get('SELECT id FROM brands WHERE LOWER(name) = LOWER(?)', [trimmedName], (err, existing) => {
         if (err) {
-            console.error('Error updating item sold status:', err.message);
-            res.status(500).json({ error: 'Failed to update item sold status' });
-        } else if (this.changes === 0) {
-            res.status(404).json({ error: 'Item not found' });
+            console.error('Error checking existing brand:', err.message);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (existing) {
+            return res.status(409).json({ error: 'Brand already exists' });
+        }
+
+        // Insert new brand
+        db.run(
+            'INSERT INTO brands (name, is_active) VALUES (?, ?)',
+            [trimmedName, is_active ? 1 : 0],
+            function(err) {
+                if (err) {
+                    console.error('Error adding brand:', err.message);
+                    res.status(500).json({ error: 'Failed to add brand' });
+                } else {
+                    // Return the new brand
+                    db.get('SELECT * FROM brands WHERE id = ?', [this.lastID], (err, newBrand) => {
+                        if (err) {
+                            console.error('Error fetching new brand:', err.message);
+                            res.status(500).json({ error: 'Brand created but failed to fetch' });
+                        } else {
+                            res.status(201).json(newBrand);
+                        }
+                    });
+                }
+            }
+        );
+    });
+});
+
+// Update brand (activate/deactivate or rename)
+app.put('/api/brands/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, is_active } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (name !== undefined) {
+        const trimmedName = name.trim();
+        if (trimmedName === '') {
+            return res.status(400).json({ error: 'Brand name cannot be empty' });
+        }
+        
+        // Check if another brand has this name
+        db.get(
+            'SELECT id FROM brands WHERE LOWER(name) = LOWER(?) AND id != ?',
+            [trimmedName, id],
+            (err, existing) => {
+                if (err) {
+                    console.error('Error checking duplicate brand name:', err.message);
+                    return res.status(500).json({ error: 'Database error' });
+                }
+                
+                if (existing) {
+                    return res.status(409).json({ error: 'Brand name already exists' });
+                }
+                
+                // Continue with update
+                performBrandUpdate();
+            }
+        );
+        
+        updates.push('name = ?');
+        params.push(trimmedName);
+    } else {
+        performBrandUpdate();
+    }
+
+    function performBrandUpdate() {
+        if (is_active !== undefined) {
+            updates.push('is_active = ?');
+            params.push(is_active ? 1 : 0);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No updates provided' });
+        }
+
+        params.push(id);
+        
+        db.run(
+            `UPDATE brands SET ${updates.join(', ')} WHERE id = ?`,
+            params,
+            function(err) {
+                if (err) {
+                    console.error('Error updating brand:', err.message);
+                    res.status(500).json({ error: 'Failed to update brand' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Brand not found' });
+                } else {
+                    // Return updated brand
+                    db.get('SELECT * FROM brands WHERE id = ?', [id], (err, updatedBrand) => {
+                        if (err) {
+                            console.error('Error fetching updated brand:', err.message);
+                            res.status(500).json({ error: 'Brand updated but failed to fetch' });
+                        } else {
+                            res.json(updatedBrand);
+                        }
+                    });
+                }
+            }
+        );
+    }
+});
+
+// Delete brand (only if not used by any items)
+app.delete('/api/brands/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Check if brand is used by any items
+    db.get(
+        'SELECT COUNT(*) as count FROM items WHERE brand = (SELECT name FROM brands WHERE id = ?)',
+        [id],
+        (err, result) => {
+            if (err) {
+                console.error('Error checking brand usage:', err.message);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (result.count > 0) {
+                return res.status(409).json({ 
+                    error: `Cannot delete brand. It is used by ${result.count} item(s). Consider deactivating instead.` 
+                });
+            }
+
+            // Safe to delete
+            db.run('DELETE FROM brands WHERE id = ?', [id], function(err) {
+                if (err) {
+                    console.error('Error deleting brand:', err.message);
+                    res.status(500).json({ error: 'Failed to delete brand' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Brand not found' });
+                } else {
+                    res.json({ message: 'Brand deleted successfully' });
+                }
+            });
+        }
+    );
+});
+
+// ================================
+// STATISTICS AND REPORTS
+// ================================
+
+// Get inventory statistics
+app.get('/api/stats', (req, res) => {
+    const stats = {};
+    
+    // Get total items count
+    db.get('SELECT COUNT(*) as count FROM items', [], (err, result) => {
+        if (err) {
+            console.error('Error getting total items:', err.message);
+            return res.status(500).json({ error: 'Failed to get statistics' });
+        }
+        stats.totalItems = result.count;
+        
+        // Get sold items count
+        db.get('SELECT COUNT(*) as count FROM items WHERE is_sold = 1', [], (err, result) => {
+            if (err) {
+                console.error('Error getting sold items:', err.message);
+                return res.status(500).json({ error: 'Failed to get statistics' });
+            }
+            stats.soldItems = result.count;
+            stats.availableItems = stats.totalItems - stats.soldItems;
+            
+            // Get total value
+            db.get('SELECT SUM(COALESCE(selling_price, price, 0)) as total FROM items WHERE (is_sold = 0 OR is_sold IS NULL)', [], (err, result) => {
+                if (err) {
+                    console.error('Error getting total value:', err.message);
+                    return res.status(500).json({ error: 'Failed to get statistics' });
+                }
+                stats.totalValue = (result.total || 0).toFixed(2);
+                
+                // Get profit calculation
+                db.get(`
+                    SELECT 
+                        SUM(COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)) as profit
+                    FROM items 
+                    WHERE is_sold = 1 AND bought_price IS NOT NULL
+                `, [], (err, result) => {
+                    if (err) {
+                        console.error('Error getting profit:', err.message);
+                        return res.status(500).json({ error: 'Failed to get statistics' });
+                    }
+                    stats.profit = (result.profit || 0).toFixed(2);
+                    
+                    // Get brands count
+                    db.get('SELECT COUNT(*) as count FROM brands WHERE is_active = 1', [], (err, result) => {
+                        if (err) {
+                            console.error('Error getting brands count:', err.message);
+                            return res.status(500).json({ error: 'Failed to get statistics' });
+                        }
+                        stats.totalBrands = result.count;
+                        
+                        res.json(stats);
+                    });
+                });
+            });
+        });
+    });
+});
+
+// ================================
+// CLEANUP AND MAINTENANCE ROUTES
+// ================================
+
+// Delete all sold items
+app.delete('/api/cleanup/sold', (req, res) => {
+    db.run('DELETE FROM items WHERE is_sold = 1', [], function(err) {
+        if (err) {
+            console.error('Error deleting sold items:', err.message);
+            res.status(500).json({ error: 'Failed to delete sold items' });
         } else {
             res.json({ 
-                message: is_sold ? 'Item marked as sold' : 'Item marked as available',
-                sold_date: soldDate
+                message: 'Sold items deleted successfully',
+                deletedCount: this.changes
             });
         }
     });
 });
 
-// Get database stats
-app.get('/api/stats', (req, res) => {
-    const statsQueries = [
-        'SELECT COUNT(*) as total FROM items',
-        'SELECT COUNT(*) as available FROM items WHERE is_sold = 0',
-        'SELECT COUNT(*) as sold FROM items WHERE is_sold = 1'
-    ];
+// Remove duplicate items (based on name, color, size, brand)
+app.delete('/api/cleanup/duplicates', (req, res) => {
+    const findDuplicatesSQL = `
+        DELETE FROM items 
+        WHERE id NOT IN (
+            SELECT MIN(id) 
+            FROM items 
+            GROUP BY name, color, size, COALESCE(brand, '')
+        )
+    `;
     
-    Promise.all(statsQueries.map(query => {
-        return new Promise((resolve, reject) => {
-            db.get(query, (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
-    }))
-    .then(results => {
-        res.json({
-            totalItems: results[0].total || results[0].available || results[0].sold,
-            availableItems: results[1].available,
-            soldItems: results[2].sold
-        });
-    })
-    .catch(err => {
-        console.error('Error fetching stats:', err.message);
-        res.status(500).json({ error: 'Failed to fetch stats' });
-    });
-});
-
-// Database backup endpoint
-app.get('/api/backup', (req, res) => {
-    if (!fs.existsSync(DB_PATH)) {
-        return res.status(404).json({ error: 'Database file not found' });
-    }
-    
-    const readStream = fs.createReadStream(DB_PATH);
-    
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="vinted-inventory-${new Date().toISOString().split('T')[0]}.db"`);
-    
-    readStream.pipe(res);
-});
-
-// Clear all data
-app.delete('/api/clear', (req, res) => {
-    db.run('DELETE FROM items', function(err) {
+    db.run(findDuplicatesSQL, [], function(err) {
         if (err) {
-            console.error('Error clearing database:', err.message);
-            res.status(500).json({ error: 'Failed to clear database' });
+            console.error('Error removing duplicates:', err.message);
+            res.status(500).json({ error: 'Failed to remove duplicates' });
         } else {
-            res.json({ message: 'Database cleared successfully' });
+            res.json({ 
+                message: 'Duplicate items removed successfully',
+                removedCount: this.changes
+            });
         }
     });
 });
 
-// Page Routes - BEFORE static middleware
+// Reset entire database (delete all items and reset brands to defaults)
+app.delete('/api/cleanup/reset', (req, res) => {
+    db.serialize(() => {
+        db.run('DELETE FROM items', [], function(err) {
+            if (err) {
+                console.error('Error deleting all items:', err.message);
+                return res.status(500).json({ error: 'Failed to reset database' });
+            }
+            
+            // Reset auto-increment counter
+            db.run('DELETE FROM sqlite_sequence WHERE name="items"', [], (err) => {
+                if (err) {
+                    console.error('Error resetting item counter:', err.message);
+                }
+            });
+            
+            // Delete all brands and re-add defaults
+            db.run('DELETE FROM brands', [], function(err) {
+                if (err) {
+                    console.error('Error deleting brands:', err.message);
+                    return res.status(500).json({ error: 'Failed to reset brands' });
+                }
+                
+                // Reset brands auto-increment counter
+                db.run('DELETE FROM sqlite_sequence WHERE name="brands"', [], (err) => {
+                    if (err) {
+                        console.error('Error resetting brands counter:', err.message);
+                    }
+                });
+                
+                // Re-add default brands
+                addDefaultBrands();
+                
+                res.json({ 
+                    message: 'Database reset successfully',
+                    itemsDeleted: this.changes
+                });
+            });
+        });
+    });
+});
 
-// Serve the table view as home page  
+// Optimize database (VACUUM and ANALYZE)
+app.post('/api/maintenance/optimize', (req, res) => {
+    db.serialize(() => {
+        db.run('VACUUM', [], (err) => {
+            if (err) {
+                console.error('Error running VACUUM:', err.message);
+                return res.status(500).json({ error: 'Failed to optimize database' });
+            }
+            
+            db.run('ANALYZE', [], (err) => {
+                if (err) {
+                    console.error('Error running ANALYZE:', err.message);
+                    return res.status(500).json({ error: 'Failed to analyze database' });
+                }
+                
+                res.json({ message: 'Database optimized successfully' });
+            });
+        });
+    });
+});
+
+// Repair database (integrity check and rebuild if necessary)
+app.post('/api/maintenance/repair', (req, res) => {
+    db.get('PRAGMA integrity_check', [], (err, result) => {
+        if (err) {
+            console.error('Error checking database integrity:', err.message);
+            return res.status(500).json({ error: 'Failed to check database integrity' });
+        }
+        
+        if (result && result.integrity_check === 'ok') {
+            res.json({ 
+                message: 'Database integrity check passed - no repair needed',
+                status: 'healthy'
+            });
+        } else {
+            // If integrity check fails, try to rebuild indexes
+            db.run('REINDEX', [], (err) => {
+                if (err) {
+                    console.error('Error rebuilding indexes:', err.message);
+                    return res.status(500).json({ error: 'Failed to repair database' });
+                }
+                
+                res.json({ 
+                    message: 'Database indexes rebuilt successfully',
+                    status: 'repaired'
+                });
+            });
+        }
+    });
+});
+
+// Get cleanup statistics (items that would be affected by cleanup operations)
+app.get('/api/cleanup/stats', (req, res) => {
+    const stats = {};
+    
+    // Count sold items
+    db.get('SELECT COUNT(*) as count FROM items WHERE is_sold = 1', [], (err, result) => {
+        if (err) {
+            console.error('Error counting sold items:', err.message);
+            return res.status(500).json({ error: 'Failed to get cleanup stats' });
+        }
+        stats.soldItems = result.count;
+        
+        // Count potential duplicates
+        db.get(`
+            SELECT COUNT(*) - COUNT(DISTINCT name, color, size, COALESCE(brand, '')) as duplicates
+            FROM items
+        `, [], (err, result) => {
+            if (err) {
+                console.error('Error counting duplicates:', err.message);
+                return res.status(500).json({ error: 'Failed to get cleanup stats' });
+            }
+            stats.duplicateItems = result.duplicates;
+            
+            // Get database size info
+            db.get('SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()', [], (err, result) => {
+                if (err) {
+                    console.error('Error getting database size:', err.message);
+                    stats.databaseSize = 'Unknown';
+                } else {
+                    stats.databaseSize = `${(result.size / 1024 / 1024).toFixed(2)} MB`;
+                }
+                
+                res.json(stats);
+            });
+        });
+    });
+});
+
+// ================================
+// EXPORT ROUTES
+// ================================
+
+// Export CSV
+app.get('/api/export/csv', (req, res) => {
+    db.all('SELECT * FROM items ORDER BY id DESC', [], (err, rows) => {
+        if (err) {
+            console.error('Error exporting CSV:', err.message);
+            res.status(500).json({ error: 'Failed to export CSV' });
+        } else {
+            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Selling Price,Condition,Location,Season,Platform,Status,Date Added,Sold Date,Description\n';
+            const csvRows = rows.map(item => {
+                const status = item.is_sold ? 'SOLD' : 'AVAILABLE';
+                const boughtPrice = item.bought_price || '';
+                const sellingPrice = item.selling_price || item.price || '';
+                
+                return [
+                    item.id,
+                    `"${(item.name || '').replace(/"/g, '""')}"`,
+                    `"${(item.color || '').replace(/"/g, '""')}"`,
+                    `"${(item.size || '').replace(/"/g, '""')}"`,
+                    `"${(item.brand || '').replace(/"/g, '""')}"`,
+                    boughtPrice,
+                    sellingPrice,
+                    `"${(item.condition_item || '').replace(/"/g, '""')}"`,
+                    `"${(item.location || '').replace(/"/g, '""')}"`,
+                    `"${(item.season || '').replace(/"/g, '""')}"`,
+                    `"${(item.platform || 'Vinted').replace(/"/g, '""')}"`,
+                    status,
+                    `"${item.date_added || ''}"`,
+                    `"${item.sold_date || ''}"`,
+                    `"${(item.description || '').replace(/"/g, '""')}"`
+                ].join(',');
+            }).join('\n');
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="inventory-export-${new Date().toISOString().split('T')[0]}.csv"`);
+            res.send(csvHeader + csvRows);
+        }
+    });
+});
+
+// Export sold items only
+app.get('/api/export/sold', (req, res) => {
+    db.all('SELECT * FROM items WHERE is_sold = 1 ORDER BY sold_date DESC', [], (err, rows) => {
+        if (err) {
+            console.error('Error exporting sold items:', err.message);
+            res.status(500).json({ error: 'Failed to export sold items' });
+        } else {
+            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Selling Price,Profit,Condition,Location,Season,Platform,Date Added,Sold Date,Description\n';
+            const csvRows = rows.map(item => {
+                const boughtPrice = parseFloat(item.bought_price) || 0;
+                const sellingPrice = parseFloat(item.selling_price || item.price) || 0;
+                const profit = sellingPrice - boughtPrice;
+                
+                return [
+                    item.id,
+                    `"${(item.name || '').replace(/"/g, '""')}"`,
+                    `"${(item.color || '').replace(/"/g, '""')}"`,
+                    `"${(item.size || '').replace(/"/g, '""')}"`,
+                    `"${(item.brand || '').replace(/"/g, '""')}"`,
+                    item.bought_price || '',
+                    item.selling_price || item.price || '',
+                    profit.toFixed(2),
+                    `"${(item.condition_item || '').replace(/"/g, '""')}"`,
+                    `"${(item.location || '').replace(/"/g, '""')}"`,
+                    `"${(item.season || '').replace(/"/g, '""')}"`,
+                    `"${(item.platform || 'Vinted').replace(/"/g, '""')}"`,
+                    `"${item.date_added || ''}"`,
+                    `"${item.sold_date || ''}"`,
+                    `"${(item.description || '').replace(/"/g, '""')}"`
+                ].join(',');
+            }).join('\n');
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="sold-items-${new Date().toISOString().split('T')[0]}.csv"`);
+            res.send(csvHeader + csvRows);
+        }
+    });
+});
+
+// Export active items only
+app.get('/api/export/active', (req, res) => {
+    db.all('SELECT * FROM items WHERE (is_sold = 0 OR is_sold IS NULL) ORDER BY id DESC', [], (err, rows) => {
+        if (err) {
+            console.error('Error exporting active items:', err.message);
+            res.status(500).json({ error: 'Failed to export active items' });
+        } else {
+            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Selling Price,Expected Profit,Condition,Location,Season,Platform,Date Added,Description\n';
+            const csvRows = rows.map(item => {
+                const boughtPrice = parseFloat(item.bought_price) || 0;
+                const sellingPrice = parseFloat(item.selling_price || item.price) || 0;
+                const expectedProfit = sellingPrice - boughtPrice;
+                
+                return [
+                    item.id,
+                    `"${(item.name || '').replace(/"/g, '""')}"`,
+                    `"${(item.color || '').replace(/"/g, '""')}"`,
+                    `"${(item.size || '').replace(/"/g, '""')}"`,
+                    `"${(item.brand || '').replace(/"/g, '""')}"`,
+                    item.bought_price || '',
+                    item.selling_price || item.price || '',
+                    expectedProfit.toFixed(2),
+                    `"${(item.condition_item || '').replace(/"/g, '""')}"`,
+                    `"${(item.location || '').replace(/"/g, '""')}"`,
+                    `"${(item.season || '').replace(/"/g, '""')}"`,
+                    `"${(item.platform || 'Vinted').replace(/"/g, '""')}"`,
+                    `"${item.date_added || ''}"`,
+                    `"${(item.description || '').replace(/"/g, '""')}"`
+                ].join(',');
+            }).join('\n');
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="active-items-${new Date().toISOString().split('T')[0]}.csv"`);
+            res.send(csvHeader + csvRows);
+        }
+    });
+});
+
+// Export brand report
+app.get('/api/export/brand-report', (req, res) => {
+    const sql = `
+        SELECT 
+            COALESCE(brand, 'No Brand') as brand_name,
+            COUNT(*) as total_items,
+            SUM(CASE WHEN is_sold = 1 THEN 1 ELSE 0 END) as sold_items,
+            SUM(CASE WHEN (is_sold = 0 OR is_sold IS NULL) THEN 1 ELSE 0 END) as available_items,
+            AVG(COALESCE(selling_price, price, 0)) as avg_selling_price,
+            AVG(COALESCE(bought_price, 0)) as avg_bought_price,
+            SUM(CASE WHEN is_sold = 1 THEN COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0) ELSE 0 END) as total_profit
+        FROM items 
+        GROUP BY COALESCE(brand, 'No Brand')
+        ORDER BY total_items DESC
+    `;
+    
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Error generating brand report:', err.message);
+            res.status(500).json({ error: 'Failed to generate brand report' });
+        } else {
+            const csvHeader = 'Brand,Total Items,Sold Items,Available Items,Avg Selling Price,Avg Bought Price,Total Profit\n';
+            const csvRows = rows.map(row => {
+                return [
+                    `"${row.brand_name.replace(/"/g, '""')}"`,
+                    row.total_items,
+                    row.sold_items,
+                    row.available_items,
+                    row.avg_selling_price.toFixed(2),
+                    row.avg_bought_price.toFixed(2),
+                    row.total_profit.toFixed(2)
+                ].join(',');
+            }).join('\n');
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="brand-report-${new Date().toISOString().split('T')[0]}.csv"`);
+            res.send(csvHeader + csvRows);
+        }
+    });
+});
+
+// Export profit report
+app.get('/api/export/profit-report', (req, res) => {
+    const sql = `
+        SELECT 
+            id, name, brand, 
+            COALESCE(bought_price, 0) as bought_price,
+            COALESCE(selling_price, price, 0) as selling_price,
+            COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0) as profit,
+            CASE 
+                WHEN COALESCE(bought_price, 0) > 0 
+                THEN ((COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)) / COALESCE(bought_price, 0)) * 100 
+                ELSE 0 
+            END as profit_margin_percent,
+            is_sold, date_added, sold_date
+        FROM items 
+        WHERE bought_price IS NOT NULL AND (selling_price IS NOT NULL OR price IS NOT NULL)
+        ORDER BY profit DESC
+    `;
+    
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Error generating profit report:', err.message);
+            res.status(500).json({ error: 'Failed to generate profit report' });
+        } else {
+            const csvHeader = 'ID,Name,Brand,Bought Price,Selling Price,Profit,Profit Margin %,Status,Date Added,Sold Date\n';
+            const csvRows = rows.map(row => {
+                return [
+                    row.id,
+                    `"${(row.name || '').replace(/"/g, '""')}"`,
+                    `"${(row.brand || '').replace(/"/g, '""')}"`,
+                    row.bought_price.toFixed(2),
+                    row.selling_price.toFixed(2),
+                    row.profit.toFixed(2),
+                    row.profit_margin_percent.toFixed(1),
+                    row.is_sold ? 'SOLD' : 'AVAILABLE',
+                    `"${row.date_added || ''}"`,
+                    `"${row.sold_date || ''}"`
+                ].join(',');
+            }).join('\n');
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="profit-report-${new Date().toISOString().split('T')[0]}.csv"`);
+            res.send(csvHeader + csvRows);
+        }
+    });
+});
+
+// Export location report
+app.get('/api/export/location-report', (req, res) => {
+    const sql = `
+        SELECT 
+            COALESCE(location, 'No Location') as location_name,
+            COUNT(*) as total_items,
+            SUM(CASE WHEN is_sold = 1 THEN 1 ELSE 0 END) as sold_items,
+            SUM(CASE WHEN (is_sold = 0 OR is_sold IS NULL) THEN 1 ELSE 0 END) as available_items,
+            GROUP_CONCAT(DISTINCT brand) as brands_in_location
+        FROM items 
+        GROUP BY COALESCE(location, 'No Location')
+        ORDER BY total_items DESC
+    `;
+    
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Error generating location report:', err.message);
+            res.status(500).json({ error: 'Failed to generate location report' });
+        } else {
+            const csvHeader = 'Location,Total Items,Sold Items,Available Items,Brands in Location\n';
+            const csvRows = rows.map(row => {
+                return [
+                    `"${row.location_name.replace(/"/g, '""')}"`,
+                    row.total_items,
+                    row.sold_items,
+                    row.available_items,
+                    `"${(row.brands_in_location || '').replace(/"/g, '""')}"`
+                ].join(',');
+            }).join('\n');
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="location-report-${new Date().toISOString().split('T')[0]}.csv"`);
+            res.send(csvHeader + csvRows);
+        }
+    });
+});
+
+// Database backup
+app.get('/api/backup', (req, res) => {
+    const backupPath = `./data/backup-${Date.now()}.db`;
+    
+    db.backup(backupPath, (err) => {
+        if (err) {
+            console.error('Error creating backup:', err.message);
+            res.status(500).json({ error: 'Failed to create backup' });
+        } else {
+            res.download(backupPath, `inventory-backup-${new Date().toISOString().split('T')[0]}.db`, (err) => {
+                if (err) {
+                    console.error('Error downloading backup:', err.message);
+                }
+                // Clean up backup file
+                fs.unlink(backupPath, (unlinkErr) => {
+                    if (unlinkErr) {
+                        console.error('Error cleaning up backup file:', unlinkErr.message);
+                    }
+                });
+            });
+        }
+    });
+});
+
+// ================================
+// SERVE STATIC FILES
+// ================================
+
+// Serve main pages
 app.get('/', (req, res) => {
-    console.log('Serving inventory.html for /');
     res.sendFile(path.join(__dirname, 'public', 'inventory.html'));
 });
 
-// Serve the management page (card view with form)
 app.get('/manage', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'management.html'));
 });
 
-// Serve the insights page (analytics & charts)
 app.get('/insights', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'insights.html'));
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
-        timestamp: new Date().toISOString(),
-        database: fs.existsSync(DB_PATH) ? 'connected' : 'not found'
-    });
+// QR Code generation
+app.get('/qr/:id', (req, res) => {
+    const { id } = req.params;
+    const url = `${req.protocol}://${req.get('host')}/#item-${id}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=333333&margin=10&format=png`;
+    res.redirect(qrUrl);
 });
 
-// Static middleware AFTER routes
-app.use(express.static('public'));
+// ================================
+// ERROR HANDLING
+// ================================
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err.stack);
+    res.status(500).json({ error: 'Internal server error' });
+});
+
+// ================================
+// SERVER STARTUP
+// ================================
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-    console.log('\nShutting down gracefully...');
+    console.log('\nReceived SIGINT. Graceful shutdown...');
     db.close((err) => {
         if (err) {
             console.error('Error closing database:', err.message);
@@ -427,20 +1070,21 @@ process.on('SIGINT', () => {
     });
 });
 
-// Error handling
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-    process.exit(1);
-});
-
-process.on('unhandledRejection', (err) => {
-    console.error('Unhandled Rejection:', err);
-    process.exit(1);
-});
-
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Vinted Inventory Server running on port ${PORT}`);
-    console.log(`📊 Database: ${DB_PATH}`);
-    console.log(`🌐 Access at: http://localhost:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log('Available endpoints:');
+    console.log('  GET  /                    - Main inventory page');
+    console.log('  GET  /manage              - Management page');
+    console.log('  GET  /insights            - Insights page');
+    console.log('  GET  /api/items           - Get all items');
+    console.log('  POST /api/items           - Create new item');
+    console.log('  GET  /api/brands          - Get active brands');
+    console.log('  GET  /api/brands/all      - Get all brands');
+    console.log('  POST /api/brands          - Create new brand');
+    console.log('  GET  /api/stats           - Get statistics');
+    console.log('  GET  /api/export/csv      - Export CSV');
+    console.log('  GET  /api/backup          - Download database backup');
 });
+
+module.exports = app;

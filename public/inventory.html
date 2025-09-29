@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Table View - Vinted Inventory System</title>
     <link rel="stylesheet" href="inventory.css">
-    
 </head>
 <body>
     <div class="container">
@@ -56,7 +55,7 @@
                                 Brand <span class="sort-indicator">↕️</span>
                             </th>
                             <th onclick="tableApp.sortTable('bought_price')">
-                                Purchase Price <span class="sort-indicator">↕️</span>
+                                Bought For <span class="sort-indicator">↕️</span>
                             </th>
                             <th onclick="tableApp.sortTable('selling_price')">
                                 Selling Price <span class="sort-indicator">↕️</span>
@@ -141,7 +140,13 @@
                             </div>
                             <div class="form-group">
                                 <label for="itemBrand">Brand</label>
-                                <input type="text" id="itemBrand" name="brand">
+                                <select id="itemBrand" name="brand">
+                                    <option value="">Select Brand</option>
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                                <button type="button" id="addNewBrandBtn" class="btn btn-small" style="margin-top: 5px;">
+                                    + Add New Brand
+                                </button>
                             </div>
                             <div class="form-group">
                                 <label for="itemBoughtPrice">Bought For (£)</label>
@@ -193,6 +198,120 @@
                 </div>
             </div>
         </div>
+
+        <!-- Edit Item Modal -->
+        <div id="editItemModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">Edit Item</div>
+                    <button class="close" onclick="tableApp.closeEditItemModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="editItemForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="editItemName">Item Name *</label>
+                                <input type="text" id="editItemName" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemColor">Color *</label>
+                                <input type="text" id="editItemColor" name="color" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemSize">Size *</label>
+                                <select id="editItemSize" name="size" required>
+                                    <option value="">Select Size</option>
+                                    <option value="XXS">XXS</option>
+                                    <option value="XS">XS</option>
+                                    <option value="S">S</option>
+                                    <option value="M">M</option>
+                                    <option value="L">L</option>
+                                    <option value="XL">XL</option>
+                                    <option value="XXL">XXL</option>
+                                    <option value="XXXL">XXXL</option>
+                                    <option value="One Size">One Size</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemBrand">Brand</label>
+                                <select id="editItemBrand" name="brand">
+                                    <option value="">Select Brand</option>
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemBoughtPrice">Bought For (£)</label>
+                                <input type="number" id="editItemBoughtPrice" name="bought_price" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemSellingPrice">Selling Price (£)</label>
+                                <input type="number" id="editItemSellingPrice" name="selling_price" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemCondition">Condition</label>
+                                <select id="editItemCondition" name="condition_item">
+                                    <option value="">Select Condition</option>
+                                    <option value="New with tags">New with tags</option>
+                                    <option value="New without tags">New without tags</option>
+                                    <option value="Very good">Very good</option>
+                                    <option value="Good">Good</option>
+                                    <option value="Satisfactory">Satisfactory</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemLocation">Location</label>
+                                <input type="text" id="editItemLocation" name="location" placeholder="e.g., Wardrobe A, Drawer 2">
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemSeason">Season</label>
+                                <select id="editItemSeason" name="season">
+                                    <option value="">Select Season</option>
+                                    <option value="Summer">Summer</option>
+                                    <option value="Winter">Winter</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemPlatform">Platform</label>
+                                <select id="editItemPlatform" name="platform">
+                                    <option value="Vinted">Vinted</option>
+                                    <option value="eBay">eBay</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editItemDescription">Description</label>
+                            <textarea id="editItemDescription" name="description" placeholder="Additional details about the item..." rows="3"></textarea>
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeEditItemModal()">Cancel</button>
+                            <button type="submit" class="btn" id="editItemButton">Update Item</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add New Brand Modal -->
+        <div id="addBrandModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">Add New Brand</div>
+                    <button class="close" onclick="tableApp.closeAddBrandModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="addBrandForm">
+                        <div class="form-group">
+                            <label for="newBrandName">Brand Name</label>
+                            <input type="text" id="newBrandName" name="brandName" required placeholder="Enter brand name">
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button type="submit" class="btn">Add Brand</button>
+                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddBrandModal()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -204,6 +323,7 @@
                 this.sortDirection = 'asc';
                 this.currentFilter = 'all';
                 this.searchTerm = '';
+                this.brands = [];
                 this.init();
             }
 
@@ -233,8 +353,50 @@
 
             async init() {
                 this.bindEvents();
+                await this.loadBrands();
                 await this.loadItems();
                 await this.loadStats();
+                // Handle direct QR code access
+                this.handleDirectItemAccess();
+            }
+
+            // Handle direct QR code access
+            handleDirectItemAccess() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const itemId = urlParams.get('item');
+                const shouldOpenPopup = urlParams.get('popup') === 'true';
+
+                if (itemId && shouldOpenPopup) {
+                    console.log('QR Code access detected for item:', itemId);
+                    // Wait for items to load, then open the popup
+                    const checkAndOpenPopup = () => {
+                        const item = this.items.find(i => i.id.toString() === itemId);
+                        if (item) {
+                            // Scroll to item and highlight it briefly
+                            const itemRow = document.querySelector(`tr[data-item-id="${itemId}"]`);
+                            if (itemRow) {
+                                itemRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                itemRow.style.backgroundColor = '#fff3cd';
+                                setTimeout(() => {
+                                    itemRow.style.backgroundColor = '';
+                                }, 3000);
+                            }
+                            
+                            // Open the popup after a brief delay
+                            setTimeout(() => {
+                                this.showItemDetails(item.id);
+                            }, 500);
+                            
+                            // Clean up URL without refreshing page
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        } else if (this.items.length === 0) {
+                            // Items not loaded yet, try again
+                            setTimeout(checkAndOpenPopup, 100);
+                        }
+                    };
+                    
+                    checkAndOpenPopup();
+                }
             }
 
             bindEvents() {
@@ -260,10 +422,125 @@
                     }
                 });
 
+                document.getElementById('editItemModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'editItemModal') {
+                        this.closeEditItemModal();
+                    }
+                });
+
+                document.getElementById('addBrandModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'addBrandModal') {
+                        this.closeAddBrandModal();
+                    }
+                });
+
+                document.getElementById('editItemForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleEditItem();
+                });
+
                 document.getElementById('addItemForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.handleAddItem();
                 });
+
+                // Brand management events
+                document.getElementById('addNewBrandBtn').addEventListener('click', () => {
+                    this.showAddBrandModal();
+                });
+
+                document.getElementById('addBrandForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleAddBrand();
+                });
+            }
+
+            async loadBrands() {
+                try {
+                    const response = await fetch('/api/brands');
+                    if (!response.ok) throw new Error('Failed to load brands');
+                    
+                    this.brands = await response.json();
+                    this.populateBrandDropdowns();
+                } catch (error) {
+                    console.error('Error loading brands:', error);
+                    // Fallback - continue without brands
+                    this.brands = [];
+                }
+            }
+
+            populateBrandDropdowns() {
+                const selectors = ['#itemBrand', '#editItemBrand'];
+                
+                selectors.forEach(selector => {
+                    const select = document.querySelector(selector);
+                    if (select) {
+                        // Clear existing options except the first one
+                        while (select.children.length > 1) {
+                            select.removeChild(select.lastChild);
+                        }
+                        
+                        // Add brand options
+                        this.brands.forEach(brand => {
+                            const option = document.createElement('option');
+                            option.value = brand.name;
+                            option.textContent = brand.name;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+            }
+
+            showAddBrandModal() {
+                document.getElementById('addBrandModal').style.display = 'block';
+                document.getElementById('newBrandName').focus();
+            }
+
+            closeAddBrandModal() {
+                document.getElementById('addBrandModal').style.display = 'none';
+                document.getElementById('addBrandForm').reset();
+            }
+
+            async handleAddBrand() {
+                const formData = new FormData(document.getElementById('addBrandForm'));
+                const brandName = formData.get('brandName').trim();
+                
+                if (!brandName) {
+                    this.showNotification('Please enter a brand name', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/brands', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name: brandName })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to add brand');
+                    }
+
+                    const newBrand = await response.json();
+                    
+                    // Add to local brands array and update dropdowns
+                    this.brands.push(newBrand);
+                    this.brands.sort((a, b) => a.name.localeCompare(b.name));
+                    this.populateBrandDropdowns();
+                    
+                    // Select the new brand
+                    document.getElementById('itemBrand').value = newBrand.name;
+                    
+                    this.closeAddBrandModal();
+                    this.showNotification('Brand added successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('Error adding brand:', error);
+                    this.showNotification(error.message, 'error');
+                }
             }
 
             async apiCall(endpoint, options = {}) {
@@ -376,7 +653,7 @@
                     const profitClass = this.getProfitMarginClass(item.bought_price, sellingRaw);
 
                     return `
-                    <tr class="${item.is_sold ? 'sold' : ''}" onclick="tableApp.showItemDetails(${item.id})">
+                    <tr class="${item.is_sold ? 'sold' : ''}" data-item-id="${item.id}" onclick="tableApp.showItemDetails(${item.id})">
                         <td class="id-cell">#${String(item.id).padStart(3, '0')}</td>
                         <td class="name-cell" title="${this.escapeHtml(item.name)}">${this.escapeHtml(item.name)}</td>
                         <td title="${this.escapeHtml(item.color)}">${this.escapeHtml(item.color)}</td>
@@ -557,6 +834,9 @@
                                 Mark as Available
                             </button>
                         `}
+                        <button class="btn btn-small btn-info" onclick="tableApp.editItem(${item.id})">
+                            Edit Item
+                        </button>
                         <button class="btn btn-small btn-info" onclick="tableApp.printLabel(${item.id})">
                             Print Label
                         </button>
@@ -569,7 +849,7 @@
                 const qrContainer = document.getElementById(`modalQR-${item.id}`);
                 if (qrContainer) {
                     const img = document.createElement('img');
-                    const url = `${window.location.origin}/#item-${item.id}`;
+                    const url = `${window.location.origin}${window.location.pathname}?item=${item.id}&popup=true`;
                     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=333333&margin=10&format=png`;
                     
                     img.src = qrUrl;
@@ -685,6 +965,88 @@
             closeAddItemModal() {
                 document.getElementById('addItemModal').style.display = 'none';
                 document.getElementById('addItemForm').reset();
+                // Reset platform to default
+                document.getElementById('itemPlatform').value = 'Vinted';
+            }
+
+            editItem(itemId) {
+                // First, get the current item details
+                this.apiCall(`/items/${itemId}`)
+                    .then(item => {
+                        // Populate the edit form with current values
+                        document.getElementById('editItemName').value = item.name || '';
+                        document.getElementById('editItemColor').value = item.color || '';
+                        document.getElementById('editItemSize').value = item.size || '';
+                        document.getElementById('editItemBrand').value = item.brand || '';
+                        document.getElementById('editItemBoughtPrice').value = item.bought_price || '';
+                        document.getElementById('editItemSellingPrice').value = item.selling_price || item.price || '';
+                        document.getElementById('editItemCondition').value = item.condition_item || '';
+                        document.getElementById('editItemLocation').value = item.location || '';
+                        document.getElementById('editItemSeason').value = item.season || '';
+                        document.getElementById('editItemPlatform').value = item.platform || 'Vinted';
+                        document.getElementById('editItemDescription').value = item.description || '';
+
+                        // Store the item ID for the update
+                        document.getElementById('editItemForm').dataset.itemId = itemId;
+
+                        // Close the item detail modal and show edit modal
+                        this.closeModal();
+                        document.getElementById('editItemModal').style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Failed to load item for editing:', error);
+                        this.showNotification('Failed to load item details', 'error');
+                    });
+            }
+
+            closeEditItemModal() {
+                document.getElementById('editItemModal').style.display = 'none';
+                document.getElementById('editItemForm').reset();
+                delete document.getElementById('editItemForm').dataset.itemId;
+            }
+
+            async handleEditItem() {
+                const form = document.getElementById('editItemForm');
+                const itemId = form.dataset.itemId;
+                
+                if (!itemId) {
+                    this.showNotification('No item selected for editing', 'error');
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                // Remove empty values except for required fields
+                Object.keys(data).forEach(key => {
+                    if (data[key] === '' && !['name', 'color', 'size'].includes(key)) {
+                        delete data[key];
+                    }
+                });
+
+                const button = document.getElementById('editItemButton');
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Updating...';
+
+                try {
+                    await this.apiCall(`/items/${itemId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.closeEditItemModal();
+                    await this.loadItems();
+                    await this.loadStats();
+                    this.showNotification('Item updated successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Failed to update item:', error);
+                    this.showNotification('Failed to update item', 'error');
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
             }
 
             async handleAddItem() {
@@ -692,6 +1054,7 @@
                 const formData = new FormData(form);
                 const data = Object.fromEntries(formData.entries());
 
+                // Remove empty values
                 Object.keys(data).forEach(key => {
                     if (data[key] === '') {
                         delete data[key];
@@ -752,15 +1115,6 @@
                 };
                 notification.style.backgroundColor = colors[type] || colors.info;
 
-                const style = document.createElement('style');
-                style.textContent = `
-                    @keyframes slideInNotification {
-                        from { transform: translateX(100%); opacity: 0; }
-                        to { transform: translateX(0); opacity: 1; }
-                    }
-                `;
-                document.head.appendChild(style);
-
                 document.body.appendChild(notification);
 
                 setTimeout(() => {
@@ -781,6 +1135,22 @@
                 return text.toString().replace(/"/g, '""');
             }
         }
+
+        // Add CSS animation for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInNotification {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
 
         const tableApp = new TableApp();
     </script>

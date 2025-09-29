@@ -9,8 +9,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📦 Inventory Management</h1>
-            <p>Manage your Vinted inventory system</p>
+            <h1>📦 NewStart Inventory System</h1>
+            <div class="nav-buttons">
+                <a href="/inventory.html" class="btn btn-secondary">📋 View Inventory</a>
+                <a href="/insights.html" class="btn btn-secondary">📊 Insights</a>
+                <button onclick="refreshStats()" class="btn btn-secondary">🔄 Refresh</button>
+            </div>
         </div>
 
         <div class="nav-tabs">
@@ -27,15 +31,6 @@
                 <div class="section-content">
                     <div class="stats-grid" id="statsGrid">
                         <!-- Stats will be loaded here -->
-                    </div>
-                    
-                    <div class="export-section">
-                        <h3>Quick Actions</h3>
-                        <div class="export-buttons">
-                            <a href="/inventory.html" class="btn">📋 View Inventory</a>
-                            <a href="/insights.html" class="btn">📊 View Insights</a>
-                            <button onclick="refreshStats()" class="btn btn-secondary">🔄 Refresh Stats</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -82,9 +77,9 @@
                     <div class="export-section">
                         <h3>Report Exports</h3>
                         <div class="export-buttons">
-                            <button onclick="exportBrandReport()" class="btn btn-secondary">🏷️ Brand Report</button>
-                            <button onclick="exportProfitReport()" class="btn btn-secondary">💰 Profit Report</button>
-                            <button onclick="exportLocationReport()" class="btn btn-secondary">📍 Location Report</button>
+                            <button onclick="exportBrandReport()" class="btn">🏷️ Brand Report</button>
+                            <button onclick="exportProfitReport()" class="btn">💰 Profit Report</button>
+                            <button onclick="exportLocationReport()" class="btn">📍 Location Report</button>
                         </div>
                     </div>
                 </div>
@@ -103,7 +98,7 @@
                         <h3>Data Cleanup</h3>
                         <div class="export-buttons">
                             <button onclick="deleteSoldItems()" class="btn btn-danger">🗑️ Delete Sold Items</button>
-                            <button onclick="cleanupDuplicates()" class="btn btn-secondary">🔄 Remove Duplicates</button>
+                            <button onclick="cleanupDuplicates()" class=" btn btn-danger">🔄 Remove Duplicates</button>
                             <button onclick="resetDatabase()" class="btn btn-danger">⚠️ Reset Database</button>
                         </div>
                     </div>
@@ -111,8 +106,8 @@
                     <div class="cleanup-section">
                         <h3>Maintenance</h3>
                         <div class="export-buttons">
-                            <button onclick="optimizeDatabase()" class="btn btn-secondary">⚡ Optimize Database</button>
-                            <button onclick="repairDatabase()" class="btn btn-secondary">🔧 Repair Database</button>
+                            <button onclick="optimizeDatabase()" class="btn">⚡ Optimize Database</button>
+                            <button onclick="repairDatabase()" class="btn">🔧 Repair Database</button>
                         </div>
                     </div>
                 </div>
