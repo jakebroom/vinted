@@ -123,8 +123,8 @@ h1 {
 }
 
 .filter-select option {
-    background: #333;
-    color: white;
+    background: white;
+    color: #333;
 }
 
 .stats {
@@ -448,6 +448,18 @@ td {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group select option {
+    background: white !important;
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.modal select option {
+    background: white !important;
+    background-color: white !important;
+    color: #333 !important;
 }
 
 .form-group textarea {

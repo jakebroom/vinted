@@ -1236,7 +1236,8 @@
             }
 
             printLabel(itemId) {
-                window.location.href = `/manage#item-${itemId}`;
+                // Redirect to a new URL that will handle printing
+                window.open('/print-label.html?id=' + itemId, '_blank', 'width=400,height=600');
             }
 
             closeModal() {
