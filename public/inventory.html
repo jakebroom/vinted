@@ -51,6 +51,9 @@
                             <th onclick="tableApp.sortTable('size')">
                                 Size <span class="sort-indicator">↕️</span>
                             </th>
+                            <th onclick="tableApp.sortTable('collar_size')" class="hide-mobile">
+                                Collar Size <span class="sort-indicator">↕️</span>
+                            </th>
                             <th onclick="tableApp.sortTable('brand')" class="hide-mobile">
                                 Brand <span class="sort-indicator">↕️</span>
                             </th>
@@ -65,9 +68,6 @@
                             </th>
                             <th onclick="tableApp.sortTable('condition_item')" class="hide-mobile">
                                 Condition <span class="sort-indicator">↕️</span>
-                            </th>
-                            <th onclick="tableApp.sortTable('location')" class="hide-mobile">
-                                Location <span class="sort-indicator">↕️</span>
                             </th>
                             <th onclick="tableApp.sortTable('season')" class="hide-mobile">
                                 Season <span class="sort-indicator">↕️</span>
@@ -127,16 +127,21 @@
                                 <label for="itemSize">Size *</label>
                                 <select id="itemSize" name="size" required>
                                     <option value="">Select Size</option>
-                                    <option value="XXS">XXS</option>
-                                    <option value="XS">XS</option>
-                                    <option value="S">S</option>
-                                    <option value="M">M</option>
-                                    <option value="L">L</option>
-                                    <option value="XL">XL</option>
-                                    <option value="XXL">XXL</option>
-                                    <option value="XXXL">XXXL</option>
-                                    <option value="One Size">One Size</option>
+                                    <!-- Options will be populated dynamically -->
                                 </select>
+                                <button type="button" id="addNewSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                    + Add New Size
+                                </button>
+                            </div>
+                            <div class="form-group">
+                                <label for="itemCollarSize">Collar Size</label>
+                                <select id="itemCollarSize" name="collar_size">
+                                    <option value="">Select Collar Size</option>
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                                <button type="button" id="addNewCollarSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                    + Add New Collar Size
+                                </button>
                             </div>
                             <div class="form-group">
                                 <label for="itemBrand">Brand</label>
@@ -166,10 +171,6 @@
                                     <option value="Good">Good</option>
                                     <option value="Satisfactory">Satisfactory</option>
                                 </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="itemLocation">Location</label>
-                                <input type="text" id="itemLocation" name="location" placeholder="e.g., Wardrobe A, Drawer 2">
                             </div>
                             <div class="form-group">
                                 <label for="itemSeason">Season</label>
@@ -221,16 +222,21 @@
                                 <label for="editItemSize">Size *</label>
                                 <select id="editItemSize" name="size" required>
                                     <option value="">Select Size</option>
-                                    <option value="XXS">XXS</option>
-                                    <option value="XS">XS</option>
-                                    <option value="S">S</option>
-                                    <option value="M">M</option>
-                                    <option value="L">L</option>
-                                    <option value="XL">XL</option>
-                                    <option value="XXL">XXL</option>
-                                    <option value="XXXL">XXXL</option>
-                                    <option value="One Size">One Size</option>
+                                    <!-- Options will be populated dynamically -->
                                 </select>
+                                <button type="button" id="editAddNewSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                    + Add New Size
+                                </button>
+                            </div>
+                            <div class="form-group">
+                                <label for="editItemCollarSize">Collar Size</label>
+                                <select id="editItemCollarSize" name="collar_size">
+                                    <option value="">Select Collar Size</option>
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                                <button type="button" id="editAddNewCollarSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                    + Add New Collar Size
+                                </button>
                             </div>
                             <div class="form-group">
                                 <label for="editItemBrand">Brand</label>
@@ -238,6 +244,9 @@
                                     <option value="">Select Brand</option>
                                     <!-- Options will be populated dynamically -->
                                 </select>
+                                <button type="button" id="editAddNewBrandBtn" class="btn btn-small" style="margin-top: 5px;">
+                                    + Add New Brand
+                                </button>
                             </div>
                             <div class="form-group">
                                 <label for="editItemBoughtPrice">Bought For (£)</label>
@@ -257,10 +266,6 @@
                                     <option value="Good">Good</option>
                                     <option value="Satisfactory">Satisfactory</option>
                                 </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="editItemLocation">Location</label>
-                                <input type="text" id="editItemLocation" name="location" placeholder="e.g., Wardrobe A, Drawer 2">
                             </div>
                             <div class="form-group">
                                 <label for="editItemSeason">Season</label>
@@ -312,6 +317,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Add New Collar Size Modal -->
+        <div id="addCollarSizeModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">Add New Collar Size</div>
+                    <button class="close" onclick="tableApp.closeAddCollarSizeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="addCollarSizeForm">
+                        <div class="form-group">
+                            <label for="newCollarSizeName">Collar Size</label>
+                            <input type="text" id="newCollarSizeName" name="collarSizeName" required placeholder="e.g., 15.5">
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button type="submit" class="btn">Add Collar Size</button>
+                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddCollarSizeModal()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Size Modal -->
+    <div id="addSizeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add New Size</div>
+                <button class="close" onclick="tableApp.closeAddSizeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addSizeForm">
+                    <div class="form-group">
+                        <label for="newSizeName">Size</label>
+                        <input type="text" id="newSizeName" name="sizeName" required placeholder="e.g., XL, XXL">
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn">Add Size</button>
+                        <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddSizeModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -324,6 +373,8 @@
                 this.currentFilter = 'all';
                 this.searchTerm = '';
                 this.brands = [];
+                this.collarSizes = [];
+                this.sizes = [];
                 this.init();
             }
 
@@ -354,6 +405,8 @@
             async init() {
                 this.bindEvents();
                 await this.loadBrands();
+                await this.loadCollarSizes();
+                await this.loadSizes();
                 await this.loadItems();
                 await this.loadStats();
                 // Handle direct QR code access
@@ -434,6 +487,18 @@
                     }
                 });
 
+                document.getElementById('addCollarSizeModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'addCollarSizeModal') {
+                        this.closeAddCollarSizeModal();
+                    }
+                });
+
+                document.getElementById('addSizeModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'addSizeModal') {
+                        this.closeAddSizeModal();
+                    }
+                });
+
                 document.getElementById('editItemForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.handleEditItem();
@@ -452,6 +517,40 @@
                 document.getElementById('addBrandForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     this.handleAddBrand();
+                });
+
+                // Collar size management events
+                document.getElementById('addNewCollarSizeBtn').addEventListener('click', () => {
+                    this.showAddCollarSizeModal();
+                });
+
+                document.getElementById('addCollarSizeForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleAddCollarSize();
+                });
+
+                // Size management events
+                document.getElementById('addNewSizeBtn').addEventListener('click', () => {
+                    this.showAddSizeModal();
+                });
+
+                document.getElementById('editAddNewSizeBtn').addEventListener('click', () => {
+                    this.showAddSizeModal();
+                });
+
+                document.getElementById('addSizeForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleAddSize();
+                });
+
+                // Edit modal - brand button
+                document.getElementById('editAddNewBrandBtn').addEventListener('click', () => {
+                    this.showAddBrandModal();
+                });
+
+                // Edit modal - collar size button
+                document.getElementById('editAddNewCollarSizeBtn').addEventListener('click', () => {
+                    this.showAddCollarSizeModal();
                 });
             }
 
@@ -504,7 +603,7 @@
             async handleAddBrand() {
                 const formData = new FormData(document.getElementById('addBrandForm'));
                 const brandName = formData.get('brandName').trim();
-                
+
                 if (!brandName) {
                     this.showNotification('Please enter a brand name', 'error');
                     return;
@@ -525,20 +624,206 @@
                     }
 
                     const newBrand = await response.json();
-                    
+
                     // Add to local brands array and update dropdowns
                     this.brands.push(newBrand);
                     this.brands.sort((a, b) => a.name.localeCompare(b.name));
                     this.populateBrandDropdowns();
-                    
-                    // Select the new brand
-                    document.getElementById('itemBrand').value = newBrand.name;
-                    
+
+                    // Select the new brand in whichever form is open
+                    const addBrandSelect = document.getElementById('itemBrand');
+                    const editBrandSelect = document.getElementById('editItemBrand');
+                    if (addBrandSelect) addBrandSelect.value = newBrand.name;
+                    if (editBrandSelect) editBrandSelect.value = newBrand.name;
+
                     this.closeAddBrandModal();
                     this.showNotification('Brand added successfully!', 'success');
-                    
+
                 } catch (error) {
                     console.error('Error adding brand:', error);
+                    this.showNotification(error.message, 'error');
+                }
+            }
+
+            async loadCollarSizes() {
+                try {
+                    const response = await fetch('/api/collar-sizes');
+                    if (!response.ok) throw new Error('Failed to load collar sizes');
+
+                    this.collarSizes = await response.json();
+                    this.populateCollarSizeDropdowns();
+                } catch (error) {
+                    console.error('Error loading collar sizes:', error);
+                    // Fallback - continue without collar sizes
+                    this.collarSizes = [];
+                }
+            }
+
+            populateCollarSizeDropdowns() {
+                const selectors = ['#itemCollarSize', '#editItemCollarSize'];
+
+                selectors.forEach(selector => {
+                    const select = document.querySelector(selector);
+                    if (select) {
+                        // Clear existing options except the first one
+                        while (select.children.length > 1) {
+                            select.removeChild(select.lastChild);
+                        }
+
+                        // Add collar size options
+                        this.collarSizes.forEach(size => {
+                            const option = document.createElement('option');
+                            option.value = size.name;
+                            option.textContent = size.name;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+            }
+
+            showAddCollarSizeModal() {
+                document.getElementById('addCollarSizeModal').style.display = 'block';
+                document.getElementById('newCollarSizeName').focus();
+            }
+
+            closeAddCollarSizeModal() {
+                document.getElementById('addCollarSizeModal').style.display = 'none';
+                document.getElementById('addCollarSizeForm').reset();
+            }
+
+            async handleAddCollarSize() {
+                const formData = new FormData(document.getElementById('addCollarSizeForm'));
+                const sizeName = formData.get('collarSizeName').trim();
+
+                if (!sizeName) {
+                    this.showNotification('Please enter a collar size', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/collar-sizes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name: sizeName })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to add collar size');
+                    }
+
+                    const newSize = await response.json();
+
+                    // Add to local array and update dropdowns
+                    this.collarSizes.push(newSize);
+                    // Sort numerically
+                    this.collarSizes.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
+                    this.populateCollarSizeDropdowns();
+
+                    // Select the new collar size in whichever form is open
+                    const addCollarSizeSelect = document.getElementById('itemCollarSize');
+                    const editCollarSizeSelect = document.getElementById('editItemCollarSize');
+                    if (addCollarSizeSelect) addCollarSizeSelect.value = newSize.name;
+                    if (editCollarSizeSelect) editCollarSizeSelect.value = newSize.name;
+
+                    this.closeAddCollarSizeModal();
+                    this.showNotification('Collar size added successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Error adding collar size:', error);
+                    this.showNotification(error.message, 'error');
+                }
+            }
+
+            async loadSizes() {
+                try {
+                    const response = await fetch('/api/sizes');
+                    if (!response.ok) throw new Error('Failed to load sizes');
+
+                    this.sizes = await response.json();
+                    this.populateSizeDropdowns();
+                } catch (error) {
+                    console.error('Error loading sizes:', error);
+                    // Fallback - continue without sizes
+                    this.sizes = [];
+                }
+            }
+
+            populateSizeDropdowns() {
+                const selectors = ['#itemSize', '#editItemSize'];
+
+                selectors.forEach(selector => {
+                    const select = document.querySelector(selector);
+                    if (select) {
+                        // Clear existing options except the first one
+                        while (select.children.length > 1) {
+                            select.removeChild(select.lastChild);
+                        }
+
+                        // Add size options
+                        this.sizes.forEach(size => {
+                            const option = document.createElement('option');
+                            option.value = size.name;
+                            option.textContent = size.name;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+            }
+
+            showAddSizeModal() {
+                document.getElementById('addSizeModal').style.display = 'block';
+                document.getElementById('newSizeName').focus();
+            }
+
+            closeAddSizeModal() {
+                document.getElementById('addSizeModal').style.display = 'none';
+                document.getElementById('addSizeForm').reset();
+            }
+
+            async handleAddSize() {
+                const formData = new FormData(document.getElementById('addSizeForm'));
+                const sizeName = formData.get('sizeName').trim();
+
+                if (!sizeName) {
+                    this.showNotification('Please enter a size', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/sizes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name: sizeName })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to add size');
+                    }
+
+                    const newSize = await response.json();
+
+                    // Add to local sizes array and update dropdowns
+                    this.sizes.push(newSize);
+                    this.sizes.sort((a, b) => a.name.localeCompare(b.name));
+                    this.populateSizeDropdowns();
+
+                    // Select the new size in whichever form is open
+                    const addSizeSelect = document.getElementById('itemSize');
+                    const editSizeSelect = document.getElementById('editItemSize');
+                    if (addSizeSelect) addSizeSelect.value = newSize.name;
+                    if (editSizeSelect) editSizeSelect.value = newSize.name;
+
+                    this.closeAddSizeModal();
+                    this.showNotification('Size added successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Error adding size:', error);
                     this.showNotification(error.message, 'error');
                 }
             }
@@ -602,9 +887,9 @@
                         item.name?.toLowerCase().includes(term) ||
                         item.color?.toLowerCase().includes(term) ||
                         item.size?.toLowerCase().includes(term) ||
+                        item.collar_size?.toLowerCase().includes(term) ||
                         item.brand?.toLowerCase().includes(term) ||
                         item.description?.toLowerCase().includes(term) ||
-                        item.location?.toLowerCase().includes(term) ||
                         item.season?.toLowerCase().includes(term) ||
                         item.platform?.toLowerCase().includes(term)
                     );
@@ -658,6 +943,7 @@
                         <td class="name-cell" title="${this.escapeHtml(item.name)}">${this.escapeHtml(item.name)}</td>
                         <td title="${this.escapeHtml(item.color)}">${this.escapeHtml(item.color)}</td>
                         <td>${this.escapeHtml(item.size)}</td>
+                        <td class="hide-mobile">${this.escapeHtml(item.collar_size || '-')}</td>
                         <td class="hide-mobile" title="${this.escapeHtml(item.brand || 'N/A')}">${this.escapeHtml(item.brand || 'N/A')}</td>
                         <td class="price-cell" style="color: #e74c3c;">${bought}</td>
                         <td class="price-cell" style="color: #2ecc71;">${selling}</td>
@@ -665,7 +951,6 @@
                             ${profitMargin ? `<span class="${profitClass}">${profitMargin}</span>` : '-'}
                         </td>
                         <td class="hide-mobile" title="${this.escapeHtml(item.condition_item || 'N/A')}">${this.escapeHtml(item.condition_item || 'N/A')}</td>
-                        <td class="hide-mobile" title="${this.escapeHtml(item.location || 'N/A')}">${this.escapeHtml(item.location || 'N/A')}</td>
                         <td class="hide-mobile" title="${this.escapeHtml(item.season || 'N/A')}">${this.escapeHtml(item.season || 'N/A')}</td>
                         <td class="hide-mobile" title="${this.escapeHtml(item.platform || 'Vinted')}">${this.escapeHtml(item.platform || 'Vinted')}</td>
                         <td class="status-cell">
@@ -758,12 +1043,12 @@
                                 <span class="detail-value">${this.escapeHtml(item.size)}</span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">Brand:</span>
-                                <span class="detail-value">${this.escapeHtml(item.brand || 'N/A')}</span>
+                                <span class="detail-label">Collar Size:</span>
+                                <span class="detail-value">${this.escapeHtml(item.collar_size || 'N/A')}</span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">Location:</span>
-                                <span class="detail-value">${this.escapeHtml(item.location || 'N/A')}</span>
+                                <span class="detail-label">Brand:</span>
+                                <span class="detail-value">${this.escapeHtml(item.brand || 'N/A')}</span>
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label">Season:</span>
@@ -910,25 +1195,25 @@
             }
 
             exportToCSV() {
-                const headers = ['ID', 'Name', 'Color', 'Size', 'Brand', 'Bought For', 'Selling Price', 'Profit Margin', 'Condition', 'Location', 'Season', 'Platform', 'Status', 'Date Added', 'Sold Date', 'Description'];
+                const headers = ['ID', 'Name', 'Color', 'Size', 'Collar Size', 'Brand', 'Bought For', 'Selling Price', 'Profit Margin', 'Condition', 'Season', 'Platform', 'Status', 'Date Added', 'Sold Date', 'Description'];
                 const csvContent = [
                     headers.join(','),
                     ...this.filteredItems.map(item => {
                         const selling = (item.selling_price ?? item.price) ?? '';
                         const bought = item.bought_price ?? '';
                         const profitMargin = this.calculateProfitMargin(item.bought_price, selling);
-                        
+
                         return [
                             item.id,
                             `"${this.escapeCSV(item.name)}"`,
                             `"${this.escapeCSV(item.color)}"`,
                             `"${this.escapeCSV(item.size)}"`,
+                            `"${this.escapeCSV(item.collar_size || '')}"`,
                             `"${this.escapeCSV(item.brand || '')}"`,
                             bought,
                             selling,
                             `"${profitMargin || ''}"`,
                             `"${this.escapeCSV(item.condition_item || '')}"`,
-                            `"${this.escapeCSV(item.location || '')}"`,
                             `"${this.escapeCSV(item.season || '')}"`,
                             `"${this.escapeCSV(item.platform || 'Vinted')}"`,
                             item.is_sold ? 'SOLD' : 'AVAILABLE',
@@ -977,11 +1262,11 @@
                         document.getElementById('editItemName').value = item.name || '';
                         document.getElementById('editItemColor').value = item.color || '';
                         document.getElementById('editItemSize').value = item.size || '';
+                        document.getElementById('editItemCollarSize').value = item.collar_size || '';
                         document.getElementById('editItemBrand').value = item.brand || '';
                         document.getElementById('editItemBoughtPrice').value = item.bought_price || '';
                         document.getElementById('editItemSellingPrice').value = item.selling_price || item.price || '';
                         document.getElementById('editItemCondition').value = item.condition_item || '';
-                        document.getElementById('editItemLocation').value = item.location || '';
                         document.getElementById('editItemSeason').value = item.season || '';
                         document.getElementById('editItemPlatform').value = item.platform || 'Vinted';
                         document.getElementById('editItemDescription').value = item.description || '';

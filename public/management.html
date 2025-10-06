@@ -20,6 +20,8 @@
         <div class="nav-tabs">
             <button class="nav-tab active" data-section="overview">Overview</button>
             <button class="nav-tab" data-section="brands">Brand Management</button>
+            <button class="nav-tab" data-section="collar-sizes">Collar Size Management</button>
+            <button class="nav-tab" data-section="sizes">Size Management</button>
             <button class="nav-tab" data-section="export">Export Data</button>
             <button class="nav-tab" data-section="cleanup">Cleanup Tools</button>
         </div>
@@ -51,6 +53,48 @@
                         
                         <div class="brands-grid" id="brandsGrid">
                             <!-- Brands will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collar Size Management Section -->
+            <div id="collar-sizes" class="section">
+                <h2>Collar Size Management</h2>
+                <div class="section-content">
+                    <div class="section-header">
+                        <p>Manage available collar sizes for the inventory system</p>
+                        <button id="addCollarSizeBtn" class="btn">Add New Collar Size</button>
+                    </div>
+
+                    <div class="brands-container">
+                        <div class="search-container">
+                            <input type="text" id="collarSizeSearch" class="search-input" placeholder="🔍 Search collar sizes...">
+                        </div>
+
+                        <div class="brands-grid" id="collarSizesGrid">
+                            <!-- Collar sizes will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Size Management Section -->
+            <div id="sizes" class="section">
+                <h2>Size Management</h2>
+                <div class="section-content">
+                    <div class="section-header">
+                        <p>Manage available sizes for the inventory system</p>
+                        <button id="addSizeBtn" class="btn">Add New Size</button>
+                    </div>
+
+                    <div class="brands-container">
+                        <div class="search-container">
+                            <input type="text" id="sizeSearch" class="search-input" placeholder="🔍 Search sizes...">
+                        </div>
+
+                        <div class="brands-grid" id="sizesGrid">
+                            <!-- Sizes will be loaded here -->
                         </div>
                     </div>
                 </div>
@@ -144,6 +188,64 @@
         </div>
     </div>
 
+    <!-- Collar Size Modal -->
+    <div id="collarSizeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="collarSizeModalTitle">Add New Collar Size</h3>
+                <span class="close" id="closeCollarSizeModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="collarSizeForm">
+                    <input type="hidden" id="collarSizeId" name="collarSizeId">
+                    <div class="form-group">
+                        <label for="collarSizeName">Collar Size</label>
+                        <input type="text" id="collarSizeName" name="collarSizeName" required placeholder="e.g., 15.5">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="collarSizeIsActive" name="isActive" checked>
+                            Active (available in dropdown)
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn" id="saveCollarSizeBtn">Save Collar Size</button>
+                        <button type="button" class="btn-secondary" id="cancelCollarSizeBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Size Modal -->
+    <div id="sizeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="sizeModalTitle">Add New Size</h3>
+                <span class="close" id="closeSizeModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="sizeForm">
+                    <input type="hidden" id="sizeId" name="sizeId">
+                    <div class="form-group">
+                        <label for="sizeName">Size</label>
+                        <input type="text" id="sizeName" name="sizeName" required placeholder="e.g., XL, XXL">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="sizeIsActive" name="isActive" checked>
+                            Active (available in dropdown)
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn" id="saveSizeBtn">Save Size</button>
+                        <button type="button" class="btn-secondary" id="cancelSizeBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast notifications -->
     <div id="toast" class="toast"></div>
 
@@ -172,6 +274,14 @@
             } else if (sectionId === 'brands') {
                 if (window.brandManager) {
                     brandManager.loadBrands();
+                }
+            } else if (sectionId === 'collar-sizes') {
+                if (window.collarSizeManager) {
+                    collarSizeManager.loadCollarSizes();
+                }
+            } else if (sectionId === 'sizes') {
+                if (window.sizeManager) {
+                    sizeManager.loadSizes();
                 }
             }
         }
@@ -699,6 +809,498 @@
             }
         }
 
+        // Collar Size Management Class (similar to BrandManager)
+        class CollarSizeManager {
+            constructor() {
+                this.collarSizes = [];
+                this.filteredCollarSizes = [];
+                this.editingCollarSizeId = null;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.loadCollarSizes();
+            }
+
+            bindEvents() {
+                // Add collar size button
+                document.getElementById('addCollarSizeBtn').addEventListener('click', () => {
+                    this.showCollarSizeModal();
+                });
+
+                // Modal close events
+                document.getElementById('closeCollarSizeModal').addEventListener('click', () => {
+                    this.hideCollarSizeModal();
+                });
+
+                document.getElementById('cancelCollarSizeBtn').addEventListener('click', () => {
+                    this.hideCollarSizeModal();
+                });
+
+                // Form submission
+                document.getElementById('collarSizeForm').addEventListener('submit', (e) => {
+                    this.handleCollarSizeSubmit(e);
+                });
+
+                // Search functionality
+                document.getElementById('collarSizeSearch').addEventListener('input', (e) => {
+                    this.filterCollarSizes(e.target.value);
+                });
+
+                // Close modal when clicking outside
+                document.getElementById('collarSizeModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'collarSizeModal') {
+                        this.hideCollarSizeModal();
+                    }
+                });
+            }
+
+            async loadCollarSizes() {
+                try {
+                    const response = await fetch('/api/collar-sizes/all');
+                    if (!response.ok) throw new Error('Failed to load collar sizes');
+
+                    this.collarSizes = await response.json();
+                    this.filteredCollarSizes = [...this.collarSizes];
+                    this.renderCollarSizes();
+                } catch (error) {
+                    console.error('Error loading collar sizes:', error);
+                    showToast('Failed to load collar sizes', 'error');
+                }
+            }
+
+            filterCollarSizes(searchTerm) {
+                const term = searchTerm.toLowerCase().trim();
+                this.filteredCollarSizes = this.collarSizes.filter(size =>
+                    size.name.toLowerCase().includes(term)
+                );
+                this.renderCollarSizes();
+            }
+
+            renderCollarSizes() {
+                const container = document.getElementById('collarSizesGrid');
+
+                if (this.filteredCollarSizes.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No collar sizes found</h3>
+                            <p>Try adjusting your search or add a new collar size</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.filteredCollarSizes.map(size => `
+                    <div class="brand-card ${size.is_active ? 'active' : 'inactive'}">
+                        <div class="brand-header">
+                            <h4 class="brand-name">${this.escapeHtml(size.name)}</h4>
+                            <span class="brand-status ${size.is_active ? 'active' : 'inactive'}">
+                                ${size.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="brand-info">
+                            Added: ${new Date(size.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="brand-actions">
+                            <button class="btn-edit" onclick="collarSizeManager.editCollarSize(${size.id})">
+                                Edit
+                            </button>
+                            <button class="btn-toggle" onclick="collarSizeManager.toggleCollarSize(${size.id})">
+                                ${size.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="btn-delete" onclick="collarSizeManager.deleteCollarSize(${size.id})">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            showCollarSizeModal(size = null) {
+                this.editingCollarSizeId = size ? size.id : null;
+
+                document.getElementById('collarSizeModalTitle').textContent =
+                    size ? 'Edit Collar Size' : 'Add New Collar Size';
+
+                document.getElementById('collarSizeId').value = size ? size.id : '';
+                document.getElementById('collarSizeName').value = size ? size.name : '';
+                document.getElementById('collarSizeIsActive').checked = size ? size.is_active : true;
+
+                document.getElementById('saveCollarSizeBtn').textContent =
+                    size ? 'Update Collar Size' : 'Add Collar Size';
+
+                document.getElementById('collarSizeModal').style.display = 'block';
+                document.getElementById('collarSizeName').focus();
+            }
+
+            hideCollarSizeModal() {
+                document.getElementById('collarSizeModal').style.display = 'none';
+                document.getElementById('collarSizeForm').reset();
+                this.editingCollarSizeId = null;
+            }
+
+            async handleCollarSizeSubmit(e) {
+                e.preventDefault();
+
+                const formData = new FormData(e.target);
+                const sizeData = {
+                    name: formData.get('collarSizeName').trim(),
+                    is_active: formData.get('isActive') === 'on'
+                };
+
+                if (!sizeData.name) {
+                    showToast('Please enter a collar size', 'error');
+                    return;
+                }
+
+                try {
+                    const url = this.editingCollarSizeId
+                        ? `/api/collar-sizes/${this.editingCollarSizeId}`
+                        : '/api/collar-sizes';
+
+                    const method = this.editingCollarSizeId ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sizeData)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to save collar size');
+                    }
+
+                    await this.loadCollarSizes();
+                    this.hideCollarSizeModal();
+
+                    showToast(
+                        this.editingCollarSizeId ? 'Collar size updated successfully!' : 'Collar size added successfully!',
+                        'success'
+                    );
+
+                } catch (error) {
+                    console.error('Error saving collar size:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            editCollarSize(sizeId) {
+                const size = this.collarSizes.find(s => s.id === sizeId);
+                if (size) {
+                    this.showCollarSizeModal(size);
+                }
+            }
+
+            async toggleCollarSize(sizeId) {
+                const size = this.collarSizes.find(s => s.id === sizeId);
+                if (!size) return;
+
+                try {
+                    const response = await fetch(`/api/collar-sizes/${sizeId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_active: !size.is_active })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to update collar size');
+                    }
+
+                    await this.loadCollarSizes();
+                    showToast(
+                        `Collar size ${size.is_active ? 'deactivated' : 'activated'} successfully!`,
+                        'success'
+                    );
+
+                } catch (error) {
+                    console.error('Error toggling collar size:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            async deleteCollarSize(sizeId) {
+                const size = this.collarSizes.find(s => s.id === sizeId);
+                if (!size) return;
+
+                if (!confirm(`Are you sure you want to delete "${size.name}"? This action cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/collar-sizes/${sizeId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to delete collar size');
+                    }
+
+                    await this.loadCollarSizes();
+                    showToast('Collar size deleted successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Error deleting collar size:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Size Management Class (similar to CollarSizeManager)
+        class SizeManager {
+            constructor() {
+                this.sizes = [];
+                this.filteredSizes = [];
+                this.editingSizeId = null;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.loadSizes();
+            }
+
+            bindEvents() {
+                // Add size button
+                document.getElementById('addSizeBtn').addEventListener('click', () => {
+                    this.showSizeModal();
+                });
+
+                // Modal close events
+                document.getElementById('closeSizeModal').addEventListener('click', () => {
+                    this.hideSizeModal();
+                });
+
+                document.getElementById('cancelSizeBtn').addEventListener('click', () => {
+                    this.hideSizeModal();
+                });
+
+                // Form submission
+                document.getElementById('sizeForm').addEventListener('submit', (e) => {
+                    this.handleSizeSubmit(e);
+                });
+
+                // Search functionality
+                document.getElementById('sizeSearch').addEventListener('input', (e) => {
+                    this.filterSizes(e.target.value);
+                });
+
+                // Close modal when clicking outside
+                document.getElementById('sizeModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'sizeModal') {
+                        this.hideSizeModal();
+                    }
+                });
+            }
+
+            async loadSizes() {
+                try {
+                    const response = await fetch('/api/sizes/all');
+                    if (!response.ok) throw new Error('Failed to load sizes');
+
+                    this.sizes = await response.json();
+                    this.filteredSizes = [...this.sizes];
+                    this.renderSizes();
+                } catch (error) {
+                    console.error('Error loading sizes:', error);
+                    showToast('Failed to load sizes', 'error');
+                }
+            }
+
+            filterSizes(searchTerm) {
+                const term = searchTerm.toLowerCase().trim();
+                this.filteredSizes = this.sizes.filter(size =>
+                    size.name.toLowerCase().includes(term)
+                );
+                this.renderSizes();
+            }
+
+            renderSizes() {
+                const container = document.getElementById('sizesGrid');
+
+                if (this.filteredSizes.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No sizes found</h3>
+                            <p>Try adjusting your search or add a new size</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.filteredSizes.map(size => `
+                    <div class="brand-card ${size.is_active ? 'active' : 'inactive'}">
+                        <div class="brand-header">
+                            <h4 class="brand-name">${this.escapeHtml(size.name)}</h4>
+                            <span class="brand-status ${size.is_active ? 'active' : 'inactive'}">
+                                ${size.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="brand-info">
+                            Added: ${new Date(size.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="brand-actions">
+                            <button class="btn-edit" onclick="sizeManager.editSize(${size.id})">
+                                Edit
+                            </button>
+                            <button class="btn-toggle" onclick="sizeManager.toggleSize(${size.id})">
+                                ${size.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="btn-delete" onclick="sizeManager.deleteSize(${size.id})">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            showSizeModal(size = null) {
+                this.editingSizeId = size ? size.id : null;
+
+                document.getElementById('sizeModalTitle').textContent =
+                    size ? 'Edit Size' : 'Add New Size';
+
+                document.getElementById('sizeId').value = size ? size.id : '';
+                document.getElementById('sizeName').value = size ? size.name : '';
+                document.getElementById('sizeIsActive').checked = size ? size.is_active : true;
+
+                document.getElementById('saveSizeBtn').textContent =
+                    size ? 'Update Size' : 'Add Size';
+
+                document.getElementById('sizeModal').style.display = 'block';
+                document.getElementById('sizeName').focus();
+            }
+
+            hideSizeModal() {
+                document.getElementById('sizeModal').style.display = 'none';
+                document.getElementById('sizeForm').reset();
+                this.editingSizeId = null;
+            }
+
+            async handleSizeSubmit(e) {
+                e.preventDefault();
+
+                const formData = new FormData(e.target);
+                const sizeData = {
+                    name: formData.get('sizeName').trim(),
+                    is_active: formData.get('isActive') === 'on'
+                };
+
+                if (!sizeData.name) {
+                    showToast('Please enter a size', 'error');
+                    return;
+                }
+
+                try {
+                    const url = this.editingSizeId
+                        ? `/api/sizes/${this.editingSizeId}`
+                        : '/api/sizes';
+
+                    const method = this.editingSizeId ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sizeData)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to save size');
+                    }
+
+                    await this.loadSizes();
+                    this.hideSizeModal();
+
+                    showToast(
+                        this.editingSizeId ? 'Size updated successfully!' : 'Size added successfully!',
+                        'success'
+                    );
+
+                } catch (error) {
+                    console.error('Error saving size:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            editSize(sizeId) {
+                const size = this.sizes.find(s => s.id === sizeId);
+                if (size) {
+                    this.showSizeModal(size);
+                }
+            }
+
+            async toggleSize(sizeId) {
+                const size = this.sizes.find(s => s.id === sizeId);
+                if (!size) return;
+
+                try {
+                    const response = await fetch(`/api/sizes/${sizeId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_active: !size.is_active })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to update size');
+                    }
+
+                    await this.loadSizes();
+                    showToast(
+                        `Size ${size.is_active ? 'deactivated' : 'activated'} successfully!`,
+                        'success'
+                    );
+
+                } catch (error) {
+                    console.error('Error toggling size:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            async deleteSize(sizeId) {
+                const size = this.sizes.find(s => s.id === sizeId);
+                if (!size) return;
+
+                if (!confirm(`Are you sure you want to delete "${size.name}"? This action cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/sizes/${sizeId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to delete size');
+                    }
+
+                    await this.loadSizes();
+                    showToast('Size deleted successfully!', 'success');
+
+                } catch (error) {
+                    console.error('Error deleting size:', error);
+                    showToast(error.message, 'error');
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
         // Utility Functions
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
@@ -715,7 +1317,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize brand manager
             window.brandManager = new BrandManager();
-            
+
+            // Initialize collar size manager
+            window.collarSizeManager = new CollarSizeManager();
+
+            // Initialize size manager
+            window.sizeManager = new SizeManager();
+
             // Load initial stats
             loadStats();
         });

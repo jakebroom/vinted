@@ -62,7 +62,25 @@ function initializeDatabase() {
             is_active BOOLEAN DEFAULT 1
         );
     `;
-    
+
+    const createCollarSizesTableSQL = `
+        CREATE TABLE IF NOT EXISTS collar_sizes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1
+        );
+    `;
+
+    const createSizesTableSQL = `
+        CREATE TABLE IF NOT EXISTS sizes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1
+        );
+    `;
+
     db.run(createItemsTableSQL, (err) => {
         if (err) {
             console.error('Error creating items table:', err.message);
@@ -80,6 +98,24 @@ function initializeDatabase() {
         }
     });
 
+    db.run(createCollarSizesTableSQL, (err) => {
+        if (err) {
+            console.error('Error creating collar_sizes table:', err.message);
+        } else {
+            console.log('Collar sizes table initialized successfully');
+            addDefaultCollarSizes();
+        }
+    });
+
+    db.run(createSizesTableSQL, (err) => {
+        if (err) {
+            console.error('Error creating sizes table:', err.message);
+        } else {
+            console.log('Sizes table initialized successfully');
+            addDefaultSizes();
+        }
+    });
+
     // Add columns that might not exist in older databases
     addMissingColumns();
 }
@@ -94,12 +130,87 @@ function addDefaultBrands() {
         'New Balance', 'Converse', 'Vans', 'Boohoo', 'PrettyLittleThing'
     ];
 
-    defaultBrands.forEach(brandName => {
-        db.run('INSERT OR IGNORE INTO brands (name) VALUES (?)', [brandName], (err) => {
-            if (err && !err.message.includes('UNIQUE constraint failed')) {
-                console.error('Error adding default brand:', brandName, err.message);
-            }
-        });
+    // Check if brands already exist to avoid unnecessary inserts
+    db.get('SELECT COUNT(*) as count FROM brands', [], (err, result) => {
+        if (err) {
+            console.error('Error checking brands:', err.message);
+            return;
+        }
+
+        // Only insert if we have fewer brands than defaults
+        if (result.count < defaultBrands.length) {
+            db.serialize(() => {
+                const stmt = db.prepare('INSERT OR IGNORE INTO brands (name) VALUES (?)');
+                defaultBrands.forEach(brandName => {
+                    stmt.run(brandName, (err) => {
+                        if (err && !err.message.includes('UNIQUE constraint failed')) {
+                            console.error('Error adding default brand:', brandName, err.message);
+                        }
+                    });
+                });
+                stmt.finalize();
+            });
+        }
+    });
+}
+
+// Add default collar sizes
+function addDefaultCollarSizes() {
+    const defaultCollarSizes = [
+        '14', '14.5', '15', '15.5', '16', '16.5', '17', '17.5', '18', '18.5', '19', '19.5', '20'
+    ];
+
+    // Check if collar sizes already exist to avoid unnecessary inserts
+    db.get('SELECT COUNT(*) as count FROM collar_sizes', [], (err, result) => {
+        if (err) {
+            console.error('Error checking collar sizes:', err.message);
+            return;
+        }
+
+        // Only insert if we have fewer collar sizes than defaults
+        if (result.count < defaultCollarSizes.length) {
+            db.serialize(() => {
+                const stmt = db.prepare('INSERT OR IGNORE INTO collar_sizes (name) VALUES (?)');
+                defaultCollarSizes.forEach(sizeName => {
+                    stmt.run(sizeName, (err) => {
+                        if (err && !err.message.includes('UNIQUE constraint failed')) {
+                            console.error('Error adding default collar size:', sizeName, err.message);
+                        }
+                    });
+                });
+                stmt.finalize();
+            });
+        }
+    });
+}
+
+// Add default sizes
+function addDefaultSizes() {
+    const defaultSizes = [
+        'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'One Size'
+    ];
+
+    // Check if sizes already exist to avoid unnecessary inserts
+    db.get('SELECT COUNT(*) as count FROM sizes', [], (err, result) => {
+        if (err) {
+            console.error('Error checking sizes:', err.message);
+            return;
+        }
+
+        // Only insert if we have fewer sizes than defaults
+        if (result.count < defaultSizes.length) {
+            db.serialize(() => {
+                const stmt = db.prepare('INSERT OR IGNORE INTO sizes (name) VALUES (?)');
+                defaultSizes.forEach(sizeName => {
+                    stmt.run(sizeName, (err) => {
+                        if (err && !err.message.includes('UNIQUE constraint failed')) {
+                            console.error('Error adding default size:', sizeName, err.message);
+                        }
+                    });
+                });
+                stmt.finalize();
+            });
+        }
     });
 }
 
@@ -112,7 +223,8 @@ function addMissingColumns() {
         { column: 'selling_price', type: 'DECIMAL(10,2)' },
         { column: 'location', type: 'TEXT' },
         { column: 'season', type: 'TEXT' },
-        { column: 'platform', type: 'TEXT DEFAULT "Vinted"' }
+        { column: 'platform', type: 'TEXT DEFAULT "Vinted"' },
+        { column: 'collar_size', type: 'TEXT' }
     ];
 
     columnsToAdd.forEach(({ column, type }) => {
@@ -192,7 +304,7 @@ app.get('/api/items/:id', (req, res) => {
 app.post('/api/items', (req, res) => {
     const {
         name, color, size, brand, price, condition_item, description,
-        bought_price, selling_price, location, season, platform
+        bought_price, selling_price, location, season, platform, collar_size
     } = req.body;
 
     if (!name || !color || !size) {
@@ -200,18 +312,18 @@ app.post('/api/items', (req, res) => {
     }
 
     const dateAdded = new Date().toISOString().split('T')[0];
-    
+
     const sql = `
         INSERT INTO items (
             name, color, size, brand, price, condition_item, description, date_added,
-            bought_price, selling_price, location, season, platform
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            bought_price, selling_price, location, season, platform, collar_size
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
         name, color, size, brand || null, price || null, condition_item || null,
         description || null, dateAdded, bought_price || null, selling_price || null,
-        location || null, season || null, platform || 'Vinted'
+        location || null, season || null, platform || 'Vinted', collar_size || null
     ];
 
     db.run(sql, params, function(err) {
@@ -241,7 +353,7 @@ app.put('/api/items/:id', (req, res) => {
 
     const allowedFields = [
         'name', 'color', 'size', 'brand', 'price', 'condition_item', 'description',
-        'bought_price', 'selling_price', 'location', 'season', 'platform', 'is_sold'
+        'bought_price', 'selling_price', 'location', 'season', 'platform', 'is_sold', 'collar_size'
     ];
 
     const fields = [];
@@ -509,6 +621,390 @@ app.delete('/api/brands/:id', (req, res) => {
 });
 
 // ================================
+// COLLAR SIZE API ROUTES
+// ================================
+
+// Get all active collar sizes for dropdown
+app.get('/api/collar-sizes', (req, res) => {
+    db.all(
+        'SELECT id, name FROM collar_sizes WHERE is_active = 1 ORDER BY CAST(name AS REAL) ASC',
+        [],
+        (err, rows) => {
+            if (err) {
+                console.error('Error fetching collar sizes:', err.message);
+                res.status(500).json({ error: 'Failed to fetch collar sizes' });
+            } else {
+                res.json(rows);
+            }
+        }
+    );
+});
+
+// Get all collar sizes (including inactive) for management
+app.get('/api/collar-sizes/all', (req, res) => {
+    db.all(
+        'SELECT id, name, is_active, created_at FROM collar_sizes ORDER BY CAST(name AS REAL) ASC',
+        [],
+        (err, rows) => {
+            if (err) {
+                console.error('Error fetching all collar sizes:', err.message);
+                res.status(500).json({ error: 'Failed to fetch collar sizes' });
+            } else {
+                res.json(rows);
+            }
+        }
+    );
+});
+
+// Add new collar size
+app.post('/api/collar-sizes', (req, res) => {
+    const { name, is_active = true } = req.body;
+
+    if (!name || name.trim() === '') {
+        return res.status(400).json({ error: 'Collar size name is required' });
+    }
+
+    const trimmedName = name.trim();
+
+    // Check if collar size already exists
+    db.get('SELECT id FROM collar_sizes WHERE LOWER(name) = LOWER(?)', [trimmedName], (err, existing) => {
+        if (err) {
+            console.error('Error checking existing collar size:', err.message);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (existing) {
+            return res.status(409).json({ error: 'Collar size already exists' });
+        }
+
+        // Insert new collar size
+        db.run(
+            'INSERT INTO collar_sizes (name, is_active) VALUES (?, ?)',
+            [trimmedName, is_active ? 1 : 0],
+            function(err) {
+                if (err) {
+                    console.error('Error adding collar size:', err.message);
+                    res.status(500).json({ error: 'Failed to add collar size' });
+                } else {
+                    // Return the new collar size
+                    db.get('SELECT * FROM collar_sizes WHERE id = ?', [this.lastID], (err, newSize) => {
+                        if (err) {
+                            console.error('Error fetching new collar size:', err.message);
+                            res.status(500).json({ error: 'Collar size created but failed to fetch' });
+                        } else {
+                            res.status(201).json(newSize);
+                        }
+                    });
+                }
+            }
+        );
+    });
+});
+
+// Update collar size (activate/deactivate or rename)
+app.put('/api/collar-sizes/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, is_active } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (name !== undefined) {
+        const trimmedName = name.trim();
+        if (trimmedName === '') {
+            return res.status(400).json({ error: 'Collar size name cannot be empty' });
+        }
+
+        // Check if another collar size has this name
+        db.get(
+            'SELECT id FROM collar_sizes WHERE LOWER(name) = LOWER(?) AND id != ?',
+            [trimmedName, id],
+            (err, existing) => {
+                if (err) {
+                    console.error('Error checking duplicate collar size name:', err.message);
+                    return res.status(500).json({ error: 'Database error' });
+                }
+
+                if (existing) {
+                    return res.status(409).json({ error: 'Collar size name already exists' });
+                }
+
+                // Continue with update
+                performCollarSizeUpdate();
+            }
+        );
+
+        updates.push('name = ?');
+        params.push(trimmedName);
+    } else {
+        performCollarSizeUpdate();
+    }
+
+    function performCollarSizeUpdate() {
+        if (is_active !== undefined) {
+            updates.push('is_active = ?');
+            params.push(is_active ? 1 : 0);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No updates provided' });
+        }
+
+        params.push(id);
+
+        db.run(
+            `UPDATE collar_sizes SET ${updates.join(', ')} WHERE id = ?`,
+            params,
+            function(err) {
+                if (err) {
+                    console.error('Error updating collar size:', err.message);
+                    res.status(500).json({ error: 'Failed to update collar size' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Collar size not found' });
+                } else {
+                    // Return updated collar size
+                    db.get('SELECT * FROM collar_sizes WHERE id = ?', [id], (err, updatedSize) => {
+                        if (err) {
+                            console.error('Error fetching updated collar size:', err.message);
+                            res.status(500).json({ error: 'Collar size updated but failed to fetch' });
+                        } else {
+                            res.json(updatedSize);
+                        }
+                    });
+                }
+            }
+        );
+    }
+});
+
+// Delete collar size (only if not used by any items)
+app.delete('/api/collar-sizes/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Check if collar size is used by any items
+    db.get(
+        'SELECT COUNT(*) as count FROM items WHERE collar_size = (SELECT name FROM collar_sizes WHERE id = ?)',
+        [id],
+        (err, result) => {
+            if (err) {
+                console.error('Error checking collar size usage:', err.message);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (result.count > 0) {
+                return res.status(409).json({
+                    error: `Cannot delete collar size. It is used by ${result.count} item(s). Consider deactivating instead.`
+                });
+            }
+
+            // Safe to delete
+            db.run('DELETE FROM collar_sizes WHERE id = ?', [id], function(err) {
+                if (err) {
+                    console.error('Error deleting collar size:', err.message);
+                    res.status(500).json({ error: 'Failed to delete collar size' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Collar size not found' });
+                } else {
+                    res.json({ message: 'Collar size deleted successfully' });
+                }
+            });
+        }
+    );
+});
+
+// ================================
+// SIZE API ROUTES
+// ================================
+
+// Get all active sizes for dropdown
+app.get('/api/sizes', (req, res) => {
+    db.all(
+        'SELECT id, name FROM sizes WHERE is_active = 1 ORDER BY name ASC',
+        [],
+        (err, rows) => {
+            if (err) {
+                console.error('Error fetching sizes:', err.message);
+                res.status(500).json({ error: 'Failed to fetch sizes' });
+            } else {
+                res.json(rows);
+            }
+        }
+    );
+});
+
+// Get all sizes (including inactive) for management
+app.get('/api/sizes/all', (req, res) => {
+    db.all(
+        'SELECT id, name, is_active, created_at FROM sizes ORDER BY name ASC',
+        [],
+        (err, rows) => {
+            if (err) {
+                console.error('Error fetching all sizes:', err.message);
+                res.status(500).json({ error: 'Failed to fetch sizes' });
+            } else {
+                res.json(rows);
+            }
+        }
+    );
+});
+
+// Add new size
+app.post('/api/sizes', (req, res) => {
+    const { name, is_active = true } = req.body;
+
+    if (!name || name.trim() === '') {
+        return res.status(400).json({ error: 'Size name is required' });
+    }
+
+    const trimmedName = name.trim();
+
+    // Check if size already exists
+    db.get('SELECT id FROM sizes WHERE LOWER(name) = LOWER(?)', [trimmedName], (err, existing) => {
+        if (err) {
+            console.error('Error checking existing size:', err.message);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (existing) {
+            return res.status(409).json({ error: 'Size already exists' });
+        }
+
+        // Insert new size
+        db.run(
+            'INSERT INTO sizes (name, is_active) VALUES (?, ?)',
+            [trimmedName, is_active ? 1 : 0],
+            function(err) {
+                if (err) {
+                    console.error('Error adding size:', err.message);
+                    res.status(500).json({ error: 'Failed to add size' });
+                } else {
+                    // Return the new size
+                    db.get('SELECT * FROM sizes WHERE id = ?', [this.lastID], (err, newSize) => {
+                        if (err) {
+                            console.error('Error fetching new size:', err.message);
+                            res.status(500).json({ error: 'Size created but failed to fetch' });
+                        } else {
+                            res.status(201).json(newSize);
+                        }
+                    });
+                }
+            }
+        );
+    });
+});
+
+// Update size (activate/deactivate or rename)
+app.put('/api/sizes/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, is_active } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (name !== undefined) {
+        const trimmedName = name.trim();
+        if (trimmedName === '') {
+            return res.status(400).json({ error: 'Size name cannot be empty' });
+        }
+
+        // Check if another size has this name
+        db.get(
+            'SELECT id FROM sizes WHERE LOWER(name) = LOWER(?) AND id != ?',
+            [trimmedName, id],
+            (err, existing) => {
+                if (err) {
+                    console.error('Error checking duplicate size name:', err.message);
+                    return res.status(500).json({ error: 'Database error' });
+                }
+
+                if (existing) {
+                    return res.status(409).json({ error: 'Size name already exists' });
+                }
+
+                // Continue with update
+                performSizeUpdate();
+            }
+        );
+
+        updates.push('name = ?');
+        params.push(trimmedName);
+    } else {
+        performSizeUpdate();
+    }
+
+    function performSizeUpdate() {
+        if (is_active !== undefined) {
+            updates.push('is_active = ?');
+            params.push(is_active ? 1 : 0);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No updates provided' });
+        }
+
+        params.push(id);
+
+        db.run(
+            `UPDATE sizes SET ${updates.join(', ')} WHERE id = ?`,
+            params,
+            function(err) {
+                if (err) {
+                    console.error('Error updating size:', err.message);
+                    res.status(500).json({ error: 'Failed to update size' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Size not found' });
+                } else {
+                    // Return updated size
+                    db.get('SELECT * FROM sizes WHERE id = ?', [id], (err, updatedSize) => {
+                        if (err) {
+                            console.error('Error fetching updated size:', err.message);
+                            res.status(500).json({ error: 'Size updated but failed to fetch' });
+                        } else {
+                            res.json(updatedSize);
+                        }
+                    });
+                }
+            }
+        );
+    }
+});
+
+// Delete size (only if not used by any items)
+app.delete('/api/sizes/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Check if size is used by any items
+    db.get(
+        'SELECT COUNT(*) as count FROM items WHERE size = (SELECT name FROM sizes WHERE id = ?)',
+        [id],
+        (err, result) => {
+            if (err) {
+                console.error('Error checking size usage:', err.message);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (result.count > 0) {
+                return res.status(409).json({
+                    error: `Cannot delete size. It is used by ${result.count} item(s). Consider deactivating instead.`
+                });
+            }
+
+            // Safe to delete
+            db.run('DELETE FROM sizes WHERE id = ?', [id], function(err) {
+                if (err) {
+                    console.error('Error deleting size:', err.message);
+                    res.status(500).json({ error: 'Failed to delete size' });
+                } else if (this.changes === 0) {
+                    res.status(404).json({ error: 'Size not found' });
+                } else {
+                    res.json({ message: 'Size deleted successfully' });
+                }
+            });
+        }
+    );
+});
+
+// ================================
 // STATISTICS AND REPORTS
 // ================================
 
@@ -531,7 +1027,7 @@ app.get('/api/stats', (req, res) => {
                 return res.status(500).json({ error: 'Failed to get statistics' });
             }
             stats.soldItems = result.count;
-            stats.availableItems = stats.totalItems - stats.soldItems;
+            stats.activeItems = stats.totalItems - stats.soldItems;
             
             // Get total value
             db.get('SELECT SUM(COALESCE(selling_price, price, 0)) as total FROM items WHERE (is_sold = 0 OR is_sold IS NULL)', [], (err, result) => {
