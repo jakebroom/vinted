@@ -219,6 +219,12 @@ td {
     font-family: monospace;
 }
 
+.item-number-cell {
+    font-weight: 600;
+    color: #555;
+    text-align: center;
+}
+
 .name-cell {
     font-weight: 600;
     color: #333;
@@ -530,4 +536,202 @@ td {
     .hide-mobile {
         display: none;
     }
+}
+
+/* Mobile Card View for screens < 768px */
+@media (max-width: 767px) {
+    .table-container {
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .table-wrapper {
+        overflow-x: visible;
+    }
+
+    table {
+        display: none; /* Hide table on mobile */
+    }
+
+    #mobileCardView {
+        display: block !important;
+    }
+
+    .mobile-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        position: relative;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        touch-action: pan-y;
+        cursor: pointer;
+    }
+
+    .mobile-card:active {
+        transform: scale(0.98);
+    }
+
+    .mobile-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .mobile-card-id {
+        font-weight: 700;
+        color: #667eea;
+        font-size: 1.1em;
+        font-family: monospace;
+    }
+
+    .mobile-card-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .mobile-card-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .mobile-card-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .mobile-card-label {
+        font-size: 11px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 3px;
+    }
+
+    .mobile-card-value {
+        font-size: 14px;
+        color: #333;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+    .mobile-card-value.price {
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    .mobile-card-footer {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #666;
+    }
+
+}
+
+/* Desktop view - hide mobile card view */
+@media (min-width: 768px) {
+    #mobileCardView {
+        display: none !important;
+    }
+}
+
+/* Backup Management Modal */
+.backup-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.backup-item.auto {
+    border-left-color: #2ecc71;
+}
+
+.backup-info {
+    flex: 1;
+}
+
+.backup-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.backup-meta {
+    font-size: 12px;
+    color: #666;
+}
+
+.backup-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.backup-actions button {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Import/Export Section */
+.import-section {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.import-section h4 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.file-input-wrapper {
+    margin-bottom: 15px;
+}
+
+.file-input-wrapper input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #667eea;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+
+.format-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.format-selector label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
 }

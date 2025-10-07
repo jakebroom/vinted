@@ -30,17 +30,30 @@
                 <option value="available">Available Only</option>
                 <option value="sold">Sold Only</option>
             </select>
-            <button class="btn btn-small" onclick="tableApp.exportToCSV()">📄 Export CSV</button>
+            <button class="btn btn-small" onclick="tableApp.showExportMenu()">📤 Export</button>
+            <button class="btn btn-small" onclick="tableApp.showImportModal()">📥 Import</button>
+            <button class="btn btn-small" onclick="tableApp.showBackupModal()">💾 Backups</button>
         </div>
 
         <!-- Table -->
         <div class="table-container">
+            <!-- Mobile Card View (shown on screens < 768px) -->
+            <div id="mobileCardView" style="display: none;">
+                <div id="mobileCardsContainer">
+                    <!-- Cards will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Desktop Table View (shown on screens >= 768px) -->
             <div class="table-wrapper">
                 <table id="inventoryTable">
                     <thead>
                         <tr>
                             <th onclick="tableApp.sortTable('id')">
                                 ID <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th>
+                                Item #
                             </th>
                             <th onclick="tableApp.sortTable('name')">
                                 Name <span class="sort-indicator">↕️</span>
@@ -85,7 +98,7 @@
                     </thead>
                     <tbody id="tableBody">
                         <tr>
-                            <td colspan="14" class="loading">Loading inventory...</td>
+                            <td colspan="15" class="loading">Loading inventory...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -115,6 +128,10 @@
                 <div class="modal-body">
                     <form id="addItemForm">
                         <div class="form-grid">
+                            <div class="form-group">
+                                <label for="itemNumber">Item Number</label>
+                                <input type="text" id="itemNumber" name="item_number" placeholder="e.g., ABC123">
+                            </div>
                             <div class="form-group">
                                 <label for="itemName">Item Name *</label>
                                 <input type="text" id="itemName" name="name" required>
@@ -210,6 +227,10 @@
                 <div class="modal-body">
                     <form id="editItemForm">
                         <div class="form-grid">
+                            <div class="form-group">
+                                <label for="editItemNumber">Item Number</label>
+                                <input type="text" id="editItemNumber" name="item_number" placeholder="e.g., ABC123">
+                            </div>
                             <div class="form-group">
                                 <label for="editItemName">Item Name *</label>
                                 <input type="text" id="editItemName" name="name" required>
@@ -359,6 +380,72 @@
                         <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddSizeModal()">Cancel</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Menu Modal -->
+    <div id="exportModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Export Data</div>
+                <button class="close" onclick="tableApp.closeExportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>Choose Export Format</h4>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                    <button class="btn" onclick="tableApp.exportData('csv')">📄 Export as CSV</button>
+                    <button class="btn" onclick="tableApp.exportData('json')">📋 Export as JSON</button>
+                    <button class="btn" onclick="tableApp.exportData('excel')">📊 Export as Excel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Import Data</div>
+                <button class="close" onclick="tableApp.closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="import-section">
+                    <h4>Upload File</h4>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="importFile" accept=".csv,.json" />
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn" onclick="tableApp.handleImportFile()">📥 Import Data</button>
+                        <button class="btn btn-secondary" onclick="tableApp.closeImportModal()">Cancel</button>
+                    </div>
+                    <p style="color: #666; font-size: 13px; margin-top: 15px;">
+                        Supported formats: CSV, JSON<br>
+                        Note: Imported items will be added to your existing inventory.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Management Modal -->
+    <div id="backupModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <div class="modal-title">Backup Management</div>
+                <button class="close" onclick="tableApp.closeBackupModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button class="btn" onclick="tableApp.createBackup()">💾 Create Manual Backup</button>
+                </div>
+                <h4>Available Backups</h4>
+                <div class="backup-list" id="backupList">
+                    <p style="text-align: center; color: #666;">Loading backups...</p>
+                </div>
+                <p style="color: #666; font-size: 13px; margin-top: 15px;">
+                    💡 Automated backups run daily at 3 AM. Last 7 automated backups are kept automatically.
+                </p>
             </div>
         </div>
     </div>
@@ -921,25 +1008,27 @@
 
             displayItems() {
                 const tbody = document.getElementById('tableBody');
-                
+
                 if (this.filteredItems.length === 0) {
                     tbody.innerHTML = `
-                        <tr><td colspan="14" class="empty-state">No items found</td></tr>
+                        <tr><td colspan="15" class="empty-state">No items found</td></tr>
                     `;
+                    this.displayMobileCards(); // Also update mobile view
                     return;
                 }
 
-                tbody.innerHTML = this.filteredItems.map(item => {
+                tbody.innerHTML = this.filteredItems.map((item, index) => {
                     const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : '-';
                     const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
                     const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : '-';
-                    
+
                     const profitMargin = this.calculateProfitMargin(item.bought_price, sellingRaw);
                     const profitClass = this.getProfitMarginClass(item.bought_price, sellingRaw);
 
                     return `
                     <tr class="${item.is_sold ? 'sold' : ''}" data-item-id="${item.id}" onclick="tableApp.showItemDetails(${item.id})">
                         <td class="id-cell">#${String(item.id).padStart(3, '0')}</td>
+                        <td class="item-number-cell">${this.escapeHtml(item.item_number || '-')}</td>
                         <td class="name-cell" title="${this.escapeHtml(item.name)}">${this.escapeHtml(item.name)}</td>
                         <td title="${this.escapeHtml(item.color)}">${this.escapeHtml(item.color)}</td>
                         <td>${this.escapeHtml(item.size)}</td>
@@ -961,6 +1050,71 @@
                         <td class="hide-mobile">${this.escapeHtml(item.date_added)}</td>
                     </tr>
                 `;
+                }).join('');
+
+                // Update mobile card view
+                this.displayMobileCards();
+            }
+
+            // Display items as cards for mobile view
+            displayMobileCards() {
+                const container = document.getElementById('mobileCardsContainer');
+
+                if (this.filteredItems.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No items found</p>';
+                    return;
+                }
+
+                container.innerHTML = this.filteredItems.map(item => {
+                    const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : '-';
+                    const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
+                    const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : '-';
+                    const profitMargin = this.calculateProfitMargin(item.bought_price, sellingRaw);
+
+                    return `
+                        <div class="mobile-card" data-item-id="${item.id}" onclick="tableApp.showItemDetails(${item.id})">
+                            <div class="mobile-card-header">
+                                <div class="mobile-card-id">#${String(item.id).padStart(3, '0')}</div>
+                                <div class="mobile-card-status ${item.is_sold ? 'status-sold' : 'status-available'}">
+                                    ${item.is_sold ? 'SOLD' : 'AVAILABLE'}
+                                </div>
+                            </div>
+                            <div class="mobile-card-body">
+                                <div class="mobile-card-field" style="grid-column: span 2;">
+                                    <div class="mobile-card-label">Name</div>
+                                    <div class="mobile-card-value">${this.escapeHtml(item.name)}</div>
+                                </div>
+                                <div class="mobile-card-field">
+                                    <div class="mobile-card-label">Color</div>
+                                    <div class="mobile-card-value">${this.escapeHtml(item.color)}</div>
+                                </div>
+                                <div class="mobile-card-field">
+                                    <div class="mobile-card-label">Size</div>
+                                    <div class="mobile-card-value">${this.escapeHtml(item.size)}</div>
+                                </div>
+                                <div class="mobile-card-field">
+                                    <div class="mobile-card-label">Brand</div>
+                                    <div class="mobile-card-value">${this.escapeHtml(item.brand || 'N/A')}</div>
+                                </div>
+                                <div class="mobile-card-field">
+                                    <div class="mobile-card-label">Bought</div>
+                                    <div class="mobile-card-value price" style="color: #e74c3c;">${bought}</div>
+                                </div>
+                                <div class="mobile-card-field">
+                                    <div class="mobile-card-label">Selling</div>
+                                    <div class="mobile-card-value price" style="color: #2ecc71;">${selling}</div>
+                                </div>
+                                <div class="mobile-card-field">
+                                    <div class="mobile-card-label">Profit Margin</div>
+                                    <div class="mobile-card-value">${profitMargin || '-'}</div>
+                                </div>
+                            </div>
+                            <div class="mobile-card-footer">
+                                <span>Added: ${this.escapeHtml(item.date_added)}</span>
+                                <span>${this.escapeHtml(item.platform || 'Vinted')}</span>
+                            </div>
+                        </div>
+                    `;
                 }).join('');
             }
 
@@ -1030,6 +1184,12 @@
                     <div class="item-detail-grid">
                         <div class="detail-section">
                             <h4>Basic Information</h4>
+                            ${item.item_number ? `
+                            <div class="detail-row">
+                                <span class="detail-label">Item Number:</span>
+                                <span class="detail-value">${this.escapeHtml(item.item_number)}</span>
+                            </div>
+                            ` : ''}
                             <div class="detail-row">
                                 <span class="detail-label">Name:</span>
                                 <span class="detail-value">${this.escapeHtml(item.name)}</span>
@@ -1260,6 +1420,7 @@
                 this.apiCall(`/items/${itemId}`)
                     .then(item => {
                         // Populate the edit form with current values
+                        document.getElementById('editItemNumber').value = item.item_number || '';
                         document.getElementById('editItemName').value = item.name || '';
                         document.getElementById('editItemColor').value = item.color || '';
                         document.getElementById('editItemSize').value = item.size || '';
@@ -1407,6 +1568,202 @@
                     notification.style.animation = 'slideInNotification 0.3s ease reverse';
                     setTimeout(() => notification.remove(), 300);
                 }, 3000);
+            }
+
+            // Export/Import/Backup functions
+            showExportMenu() {
+                document.getElementById('exportModal').style.display = 'block';
+            }
+
+            closeExportModal() {
+                document.getElementById('exportModal').style.display = 'none';
+            }
+
+            async exportData(format) {
+                try {
+                    let url = `/api/export/${format}`;
+                    const response = await fetch(url);
+
+                    if (!response.ok) throw new Error('Export failed');
+
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+
+                    const ext = format === 'excel' ? 'xlsx' : format;
+                    a.download = `inventory-export-${new Date().toISOString().split('T')[0]}.${ext}`;
+
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(downloadUrl);
+
+                    this.closeExportModal();
+                    this.showNotification(`Exported successfully as ${format.toUpperCase()}`, 'success');
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showNotification('Export failed', 'error');
+                }
+            }
+
+            showImportModal() {
+                document.getElementById('importModal').style.display = 'block';
+            }
+
+            closeImportModal() {
+                document.getElementById('importModal').style.display = 'none';
+                document.getElementById('importFile').value = '';
+            }
+
+            async handleImportFile() {
+                const fileInput = document.getElementById('importFile');
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    this.showNotification('Please select a file', 'error');
+                    return;
+                }
+
+                try {
+                    const text = await file.text();
+                    const format = file.name.endsWith('.json') ? 'json' : 'csv';
+
+                    const response = await fetch('/api/import', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ data: text, format })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Import failed');
+                    }
+
+                    const result = await response.json();
+                    this.closeImportModal();
+                    this.showNotification(`Imported ${result.inserted} items successfully!`, 'success');
+
+                    await this.loadItems();
+                    await this.loadStats();
+
+                } catch (error) {
+                    console.error('Import error:', error);
+                    this.showNotification('Import failed: ' + error.message, 'error');
+                }
+            }
+
+            showBackupModal() {
+                document.getElementById('backupModal').style.display = 'block';
+                this.loadBackups();
+            }
+
+            closeBackupModal() {
+                document.getElementById('backupModal').style.display = 'none';
+            }
+
+            async loadBackups() {
+                try {
+                    const response = await fetch('/api/backups');
+                    if (!response.ok) throw new Error('Failed to load backups');
+
+                    const backups = await response.json();
+                    const container = document.getElementById('backupList');
+
+                    if (backups.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: #666;">No backups available</p>';
+                        return;
+                    }
+
+                    container.innerHTML = backups.map(backup => {
+                        const date = new Date(backup.created).toLocaleString();
+                        const size = (backup.size / 1024).toFixed(2) + ' KB';
+                        const typeClass = backup.type === 'automated' ? 'auto' : '';
+
+                        return `
+                            <div class="backup-item ${typeClass}">
+                                <div class="backup-info">
+                                    <div class="backup-name">${backup.filename}</div>
+                                    <div class="backup-meta">${backup.type} • ${date} • ${size}</div>
+                                </div>
+                                <div class="backup-actions">
+                                    <button class="btn btn-small btn-info" onclick="tableApp.downloadBackup('${backup.filename}')">
+                                        Download
+                                    </button>
+                                    <button class="btn btn-small btn-danger" onclick="tableApp.deleteBackup('${backup.filename}')">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                } catch (error) {
+                    console.error('Failed to load backups:', error);
+                    document.getElementById('backupList').innerHTML =
+                        '<p style="text-align: center; color: #e74c3c;">Failed to load backups</p>';
+                }
+            }
+
+            async createBackup() {
+                try {
+                    const response = await fetch('/api/backups/create', {
+                        method: 'POST'
+                    });
+
+                    if (!response.ok) throw new Error('Failed to create backup');
+
+                    const result = await response.json();
+                    this.showNotification('Backup created successfully!', 'success');
+                    this.loadBackups();
+
+                } catch (error) {
+                    console.error('Backup error:', error);
+                    this.showNotification('Failed to create backup', 'error');
+                }
+            }
+
+            async downloadBackup(filename) {
+                try {
+                    const response = await fetch(`/api/backups/download/${filename}`);
+                    if (!response.ok) throw new Error('Download failed');
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+
+                    this.showNotification('Backup downloaded', 'success');
+                } catch (error) {
+                    console.error('Download error:', error);
+                    this.showNotification('Download failed', 'error');
+                }
+            }
+
+            async deleteBackup(filename) {
+                if (!confirm(`Delete backup: ${filename}?`)) return;
+
+                try {
+                    const response = await fetch(`/api/backups/${filename}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) throw new Error('Delete failed');
+
+                    this.showNotification('Backup deleted', 'success');
+                    this.loadBackups();
+
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    this.showNotification('Delete failed', 'error');
+                }
             }
 
             escapeHtml(text) {
