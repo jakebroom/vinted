@@ -735,3 +735,77 @@ td {
     gap: 5px;
     cursor: pointer;
 }
+
+/* Pagination Styles */
+.pagination-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 0 0 10px 10px;
+    align-items: center;
+}
+
+.pagination-info {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pagination-buttons .btn {
+    min-width: 80px;
+}
+
+.pagination-buttons .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-number {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 0 15px;
+}
+
+.pagination-options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+}
+
+.pagination-options label {
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .pagination-controls {
+        padding: 15px;
+    }
+
+    .pagination-buttons {
+        gap: 5px;
+    }
+
+    .pagination-buttons .btn {
+        min-width: 60px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .page-number {
+        font-size: 14px;
+        padding: 0 10px;
+    }
+}

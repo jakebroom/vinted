@@ -104,6 +104,29 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-controls" id="paginationControls" style="display: none;">
+                <div class="pagination-info">
+                    Showing <span id="pageStart">0</span> - <span id="pageEnd">0</span> of <span id="totalItems">0</span> items
+                </div>
+                <div class="pagination-buttons">
+                    <button class="btn btn-small" id="firstPageBtn" onclick="tableApp.goToPage(1)">⏮️ First</button>
+                    <button class="btn btn-small" id="prevPageBtn" onclick="tableApp.previousPage()">◀️ Previous</button>
+                    <span class="page-number">Page <span id="currentPageNum">1</span> of <span id="totalPages">1</span></span>
+                    <button class="btn btn-small" id="nextPageBtn" onclick="tableApp.nextPage()">Next ▶️</button>
+                    <button class="btn btn-small" id="lastPageBtn" onclick="tableApp.goToLastPage()">Last ⏭️</button>
+                </div>
+                <div class="pagination-options">
+                    <label for="itemsPerPageSelect">Items per page:</label>
+                    <select id="itemsPerPageSelect" class="filter-select" onchange="tableApp.changeItemsPerPage(this.value)">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <!-- Item Detail Modal -->
@@ -463,6 +486,9 @@
                 this.brands = [];
                 this.collarSizes = [];
                 this.sizes = [];
+                // Pagination
+                this.currentPage = 1;
+                this.itemsPerPage = 50;
                 this.init();
             }
 
@@ -961,6 +987,9 @@
             }
 
             filterAndDisplayItems() {
+                // Reset to first page when filtering changes
+                this.currentPage = 1;
+
                 let filtered = [...this.items];
 
                 if (this.currentFilter === 'available') {
@@ -1014,11 +1043,21 @@
                     tbody.innerHTML = `
                         <tr><td colspan="15" class="empty-state">No items found</td></tr>
                     `;
+                    document.getElementById('paginationControls').style.display = 'none';
                     this.displayMobileCards(); // Also update mobile view
                     return;
                 }
 
-                tbody.innerHTML = this.filteredItems.map((item, index) => {
+                // Calculate pagination
+                const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = Math.min(startIndex + this.itemsPerPage, this.filteredItems.length);
+                const pageItems = this.filteredItems.slice(startIndex, endIndex);
+
+                // Update pagination controls
+                this.updatePaginationControls(startIndex, endIndex, totalPages);
+
+                tbody.innerHTML = pageItems.map((item, index) => {
                     const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : '-';
                     const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
                     const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : '-';
@@ -1066,7 +1105,12 @@
                     return;
                 }
 
-                container.innerHTML = this.filteredItems.map(item => {
+                // Use same pagination as table view
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = Math.min(startIndex + this.itemsPerPage, this.filteredItems.length);
+                const pageItems = this.filteredItems.slice(startIndex, endIndex);
+
+                container.innerHTML = pageItems.map(item => {
                     const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : '-';
                     const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
                     const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : '-';
@@ -1765,6 +1809,66 @@
                     console.error('Delete error:', error);
                     this.showNotification('Delete failed', 'error');
                 }
+            }
+
+            // Pagination methods
+            updatePaginationControls(startIndex, endIndex, totalPages) {
+                document.getElementById('paginationControls').style.display = 'flex';
+                document.getElementById('pageStart').textContent = startIndex + 1;
+                document.getElementById('pageEnd').textContent = endIndex;
+                document.getElementById('totalItems').textContent = this.filteredItems.length;
+                document.getElementById('currentPageNum').textContent = this.currentPage;
+                document.getElementById('totalPages').textContent = totalPages;
+
+                // Enable/disable buttons
+                const firstBtn = document.getElementById('firstPageBtn');
+                const prevBtn = document.getElementById('prevPageBtn');
+                const nextBtn = document.getElementById('nextPageBtn');
+                const lastBtn = document.getElementById('lastPageBtn');
+
+                firstBtn.disabled = this.currentPage === 1;
+                prevBtn.disabled = this.currentPage === 1;
+                nextBtn.disabled = this.currentPage === totalPages;
+                lastBtn.disabled = this.currentPage === totalPages;
+            }
+
+            goToPage(pageNum) {
+                const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+                if (pageNum < 1 || pageNum > totalPages) return;
+                this.currentPage = pageNum;
+                this.displayItems();
+                this.displayMobileCards();
+            }
+
+            nextPage() {
+                const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+                if (this.currentPage < totalPages) {
+                    this.currentPage++;
+                    this.displayItems();
+                    this.displayMobileCards();
+                }
+            }
+
+            previousPage() {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.displayItems();
+                    this.displayMobileCards();
+                }
+            }
+
+            goToLastPage() {
+                const totalPages = Math.ceil(this.filteredItems.length / this.itemsPerPage);
+                this.currentPage = totalPages;
+                this.displayItems();
+                this.displayMobileCards();
+            }
+
+            changeItemsPerPage(value) {
+                this.itemsPerPage = parseInt(value);
+                this.currentPage = 1; // Reset to first page
+                this.displayItems();
+                this.displayMobileCards();
             }
 
             escapeHtml(text) {

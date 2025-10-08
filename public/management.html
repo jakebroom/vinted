@@ -303,6 +303,11 @@
 
         function displayStats(stats) {
             const statsGrid = document.getElementById('statsGrid');
+
+            // Parse values to ensure they're numbers
+            const totalValue = parseFloat(stats.totalValue || 0).toFixed(2);
+            const profit = parseFloat(stats.profit || 0).toFixed(2);
+
             statsGrid.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-value">${stats.totalItems || 0}</div>
@@ -317,7 +322,7 @@
                     <div class="stat-label">Sold Items</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">£${stats.totalValue || '0.00'}</div>
+                    <div class="stat-value">£${totalValue}</div>
                     <div class="stat-label">Total Value</div>
                 </div>
                 <div class="stat-card">
@@ -325,7 +330,7 @@
                     <div class="stat-label">Brands</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">£${stats.profit || '0.00'}</div>
+                    <div class="stat-value">£${profit}</div>
                     <div class="stat-label">Total Profit</div>
                 </div>
             `;
