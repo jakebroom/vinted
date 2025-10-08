@@ -4,6 +4,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
+const XLSX = require('xlsx');
+const cron = require('node-cron');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,7 +52,8 @@ function initializeDatabase() {
             selling_price DECIMAL(10,2),
             location TEXT,
             season TEXT,
-            platform TEXT DEFAULT 'Vinted'
+            platform TEXT DEFAULT 'Vinted',
+            item_number TEXT
         );
     `;
 
@@ -224,7 +227,8 @@ function addMissingColumns() {
         { column: 'location', type: 'TEXT' },
         { column: 'season', type: 'TEXT' },
         { column: 'platform', type: 'TEXT DEFAULT "Vinted"' },
-        { column: 'collar_size', type: 'TEXT' }
+        { column: 'collar_size', type: 'TEXT' },
+        { column: 'item_number', type: 'TEXT' }
     ];
 
     columnsToAdd.forEach(({ column, type }) => {
@@ -304,7 +308,7 @@ app.get('/api/items/:id', (req, res) => {
 app.post('/api/items', (req, res) => {
     const {
         name, color, size, brand, price, condition_item, description,
-        bought_price, selling_price, location, season, platform, collar_size
+        bought_price, selling_price, location, season, platform, collar_size, item_number
     } = req.body;
 
     if (!name || !color || !size) {
@@ -316,14 +320,14 @@ app.post('/api/items', (req, res) => {
     const sql = `
         INSERT INTO items (
             name, color, size, brand, price, condition_item, description, date_added,
-            bought_price, selling_price, location, season, platform, collar_size
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            bought_price, selling_price, location, season, platform, collar_size, item_number
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
         name, color, size, brand || null, price || null, condition_item || null,
         description || null, dateAdded, bought_price || null, selling_price || null,
-        location || null, season || null, platform || 'Vinted', collar_size || null
+        location || null, season || null, platform || 'Vinted', collar_size || null, item_number || null
     ];
 
     db.run(sql, params, function(err) {
@@ -353,7 +357,7 @@ app.put('/api/items/:id', (req, res) => {
 
     const allowedFields = [
         'name', 'color', 'size', 'brand', 'price', 'condition_item', 'description',
-        'bought_price', 'selling_price', 'location', 'season', 'platform', 'is_sold', 'collar_size'
+        'bought_price', 'selling_price', 'location', 'season', 'platform', 'is_sold', 'collar_size', 'item_number'
     ];
 
     const fields = [];
@@ -1238,6 +1242,335 @@ app.get('/api/cleanup/stats', (req, res) => {
             });
         });
     });
+});
+
+// ================================
+// BACKUP AND IMPORT/EXPORT ROUTES
+// ================================
+
+// Backup directory
+const BACKUP_DIR = path.join(dataDir, 'backups');
+if (!fs.existsSync(BACKUP_DIR)) {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+}
+
+// Create manual backup
+app.post('/api/backups/create', (req, res) => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFileName = `backup-manual-${timestamp}.db`;
+    const backupPath = path.join(BACKUP_DIR, backupFileName);
+
+    // Copy database file
+    fs.copyFile(DB_PATH, backupPath, (err) => {
+        if (err) {
+            console.error('Error creating backup:', err.message);
+            return res.status(500).json({ error: 'Failed to create backup' });
+        }
+
+        res.json({
+            message: 'Backup created successfully',
+            filename: backupFileName,
+            size: fs.statSync(backupPath).size
+        });
+    });
+});
+
+// List all backups
+app.get('/api/backups', (req, res) => {
+    fs.readdir(BACKUP_DIR, (err, files) => {
+        if (err) {
+            console.error('Error reading backup directory:', err.message);
+            return res.status(500).json({ error: 'Failed to list backups' });
+        }
+
+        const backups = files
+            .filter(file => file.endsWith('.db'))
+            .map(file => {
+                const filePath = path.join(BACKUP_DIR, file);
+                const stats = fs.statSync(filePath);
+                const isAuto = file.includes('auto');
+
+                return {
+                    filename: file,
+                    size: stats.size,
+                    created: stats.birthtime,
+                    type: isAuto ? 'automated' : 'manual'
+                };
+            })
+            .sort((a, b) => b.created - a.created);
+
+        res.json(backups);
+    });
+});
+
+// Download backup
+app.get('/api/backups/download/:filename', (req, res) => {
+    const { filename } = req.params;
+    const backupPath = path.join(BACKUP_DIR, filename);
+
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ error: 'Backup not found' });
+    }
+
+    res.download(backupPath, filename, (err) => {
+        if (err) {
+            console.error('Error downloading backup:', err.message);
+            res.status(500).json({ error: 'Failed to download backup' });
+        }
+    });
+});
+
+// Delete backup
+app.delete('/api/backups/:filename', (req, res) => {
+    const { filename } = req.params;
+    const backupPath = path.join(BACKUP_DIR, filename);
+
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ error: 'Backup not found' });
+    }
+
+    fs.unlink(backupPath, (err) => {
+        if (err) {
+            console.error('Error deleting backup:', err.message);
+            return res.status(500).json({ error: 'Failed to delete backup' });
+        }
+
+        res.json({ message: 'Backup deleted successfully' });
+    });
+});
+
+// Automated backup function
+function createAutomatedBackup() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFileName = `backup-auto-${timestamp}.db`;
+    const backupPath = path.join(BACKUP_DIR, backupFileName);
+
+    fs.copyFile(DB_PATH, backupPath, (err) => {
+        if (err) {
+            console.error('Error creating automated backup:', err.message);
+        } else {
+            console.log('Automated backup created:', backupFileName);
+            cleanupOldBackups();
+        }
+    });
+}
+
+// Cleanup old automated backups (keep last 7)
+function cleanupOldBackups() {
+    fs.readdir(BACKUP_DIR, (err, files) => {
+        if (err) {
+            console.error('Error reading backup directory:', err.message);
+            return;
+        }
+
+        const autoBackups = files
+            .filter(file => file.includes('auto') && file.endsWith('.db'))
+            .map(file => ({
+                filename: file,
+                path: path.join(BACKUP_DIR, file),
+                created: fs.statSync(path.join(BACKUP_DIR, file)).birthtime
+            }))
+            .sort((a, b) => b.created - a.created);
+
+        // Delete backups beyond the 7th one
+        if (autoBackups.length > 7) {
+            autoBackups.slice(7).forEach(backup => {
+                fs.unlink(backup.path, (err) => {
+                    if (err) {
+                        console.error('Error deleting old backup:', err.message);
+                    } else {
+                        console.log('Deleted old backup:', backup.filename);
+                    }
+                });
+            });
+        }
+    });
+}
+
+// Schedule automated daily backup at 3 AM
+cron.schedule('0 3 * * *', () => {
+    console.log('Running automated backup...');
+    createAutomatedBackup();
+});
+
+// Export JSON
+app.get('/api/export/json', (req, res) => {
+    db.all('SELECT * FROM items ORDER BY id DESC', [], (err, rows) => {
+        if (err) {
+            console.error('Error exporting JSON:', err.message);
+            res.status(500).json({ error: 'Failed to export JSON' });
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', `attachment; filename="inventory-export-${new Date().toISOString().split('T')[0]}.json"`);
+            res.send(JSON.stringify(rows, null, 2));
+        }
+    });
+});
+
+// Export Excel
+app.get('/api/export/excel', (req, res) => {
+    db.all('SELECT * FROM items ORDER BY id DESC', [], (err, rows) => {
+        if (err) {
+            console.error('Error exporting Excel:', err.message);
+            return res.status(500).json({ error: 'Failed to export Excel' });
+        }
+
+        // Format data for Excel
+        const formattedData = rows.map(item => ({
+            'ID': item.id,
+            'Name': item.name,
+            'Color': item.color,
+            'Size': item.size,
+            'Collar Size': item.collar_size || '',
+            'Brand': item.brand || '',
+            'Bought Price': item.bought_price || '',
+            'Selling Price': item.selling_price || item.price || '',
+            'Condition': item.condition_item || '',
+            'Location': item.location || '',
+            'Season': item.season || '',
+            'Platform': item.platform || 'Vinted',
+            'Status': item.is_sold ? 'SOLD' : 'AVAILABLE',
+            'Date Added': item.date_added || '',
+            'Sold Date': item.sold_date || '',
+            'Description': item.description || ''
+        }));
+
+        // Create workbook and worksheet
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+        // Set column widths
+        worksheet['!cols'] = [
+            { wch: 5 },   // ID
+            { wch: 30 },  // Name
+            { wch: 15 },  // Color
+            { wch: 10 },  // Size
+            { wch: 12 },  // Collar Size
+            { wch: 20 },  // Brand
+            { wch: 12 },  // Bought Price
+            { wch: 12 },  // Selling Price
+            { wch: 15 },  // Condition
+            { wch: 15 },  // Location
+            { wch: 12 },  // Season
+            { wch: 12 },  // Platform
+            { wch: 10 },  // Status
+            { wch: 12 },  // Date Added
+            { wch: 12 },  // Sold Date
+            { wch: 40 }   // Description
+        ];
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Inventory');
+
+        // Generate buffer
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="inventory-export-${new Date().toISOString().split('T')[0]}.xlsx"`);
+        res.send(buffer);
+    });
+});
+
+// Import CSV/JSON
+app.post('/api/import', (req, res) => {
+    const { data, format } = req.body;
+
+    if (!data || !format) {
+        return res.status(400).json({ error: 'Data and format are required' });
+    }
+
+    let items = [];
+
+    try {
+        if (format === 'json') {
+            items = JSON.parse(data);
+        } else if (format === 'csv') {
+            // Parse CSV manually (simple implementation)
+            const lines = data.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
+                const item = {};
+
+                headers.forEach((header, index) => {
+                    if (values[index]) {
+                        item[header] = values[index].trim().replace(/^"|"$/g, '').replace(/""/g, '"');
+                    }
+                });
+
+                items.push(item);
+            }
+        } else {
+            return res.status(400).json({ error: 'Unsupported format. Use json or csv' });
+        }
+
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'No valid items found in data' });
+        }
+
+        // Insert items
+        let insertedCount = 0;
+        let errorCount = 0;
+
+        const stmt = db.prepare(`
+            INSERT INTO items (
+                name, color, size, brand, price, condition_item, description, date_added,
+                bought_price, selling_price, location, season, platform, is_sold, sold_date, collar_size
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        items.forEach(item => {
+            const dateAdded = item.date_added || item['Date Added'] || new Date().toISOString().split('T')[0];
+            const name = item.name || item.Name;
+            const color = item.color || item.Color;
+            const size = item.size || item.Size;
+
+            if (!name || !color || !size) {
+                errorCount++;
+                return;
+            }
+
+            stmt.run(
+                name,
+                color,
+                size,
+                item.brand || item.Brand || null,
+                item.price || null,
+                item.condition_item || item.Condition || null,
+                item.description || item.Description || null,
+                dateAdded,
+                item.bought_price || item['Bought Price'] || null,
+                item.selling_price || item['Selling Price'] || null,
+                item.location || item.Location || null,
+                item.season || item.Season || null,
+                item.platform || item.Platform || 'Vinted',
+                (item.is_sold || item.Status === 'SOLD') ? 1 : 0,
+                item.sold_date || item['Sold Date'] || null,
+                item.collar_size || item['Collar Size'] || null,
+                (err) => {
+                    if (err) {
+                        console.error('Error inserting item:', err.message);
+                        errorCount++;
+                    } else {
+                        insertedCount++;
+                    }
+                }
+            );
+        });
+
+        stmt.finalize(() => {
+            res.json({
+                message: 'Import completed',
+                inserted: insertedCount,
+                errors: errorCount,
+                total: items.length
+            });
+        });
+
+    } catch (error) {
+        console.error('Error parsing import data:', error.message);
+        res.status(400).json({ error: 'Invalid data format: ' + error.message });
+    }
 });
 
 // ================================
