@@ -7,7 +7,7 @@ body {
     min-height: 100vh;
     color: #fff;
 }
-.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.container { max-width: 1800px; margin: 0 auto; padding: 24px; }
 .header {
     display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom: 24px;
 }
