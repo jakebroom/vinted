@@ -36,6 +36,58 @@
                     <div class="stats-grid" id="statsGrid">
                         <!-- Stats will be loaded here -->
                     </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions-section">
+                        <h3>Quick Actions</h3>
+                        <div class="quick-actions-grid">
+                            <a href="/inventory.html" class="quick-action-card">
+                                <div class="quick-action-icon">📦</div>
+                                <div class="quick-action-title">Add New Item</div>
+                                <div class="quick-action-desc">Add items to inventory</div>
+                            </a>
+                            <div class="quick-action-card" onclick="createBackup()">
+                                <div class="quick-action-icon">💾</div>
+                                <div class="quick-action-title">Create Backup</div>
+                                <div class="quick-action-desc">Backup your database</div>
+                            </div>
+                            <div class="quick-action-card" onclick="exportCSV()">
+                                <div class="quick-action-icon">📄</div>
+                                <div class="quick-action-title">Export Data</div>
+                                <div class="quick-action-desc">Download CSV report</div>
+                            </div>
+                            <a href="/insights.html" class="quick-action-card">
+                                <div class="quick-action-icon">📊</div>
+                                <div class="quick-action-title">View Insights</div>
+                                <div class="quick-action-desc">Analyze your data</div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity and Top Brands -->
+                    <div class="overview-grid">
+                        <!-- Recent Activity -->
+                        <div class="overview-panel">
+                            <h3>Recent Activity</h3>
+                            <div id="recentActivity" class="recent-activity-list">
+                                <p>Loading recent activity...</p>
+                            </div>
+                        </div>
+
+                        <!-- Top Brands -->
+                        <div class="overview-panel">
+                            <h3>Top Brands</h3>
+                            <div id="topBrands" class="top-brands-list">
+                                <p>Loading top brands...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Low Stock Alert -->
+                    <div id="lowStockAlert" class="alert-box" style="display: none;">
+                        <h4>⚠️ Low Stock Alert</h4>
+                        <div id="lowStockItems"></div>
+                    </div>
                 </div>
             </div>
 
@@ -353,9 +405,13 @@
             try {
                 const response = await fetch('/api/stats');
                 if (!response.ok) throw new Error('Failed to load stats');
-                
+
                 const stats = await response.json();
                 displayStats(stats);
+
+                // Load additional overview data
+                loadRecentActivity();
+                loadTopBrands();
             } catch (error) {
                 console.error('Error loading stats:', error);
                 showToast('Failed to load statistics', 'error');
@@ -371,30 +427,139 @@
 
             statsGrid.innerHTML = `
                 <div class="stat-card">
+                    <div class="stat-icon">📦</div>
                     <div class="stat-value">${stats.totalItems || 0}</div>
                     <div class="stat-label">Total Items</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-icon">✅</div>
                     <div class="stat-value">${stats.activeItems || 0}</div>
                     <div class="stat-label">Active Items</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-icon">💰</div>
                     <div class="stat-value">${stats.soldItems || 0}</div>
                     <div class="stat-label">Sold Items</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-icon">💵</div>
                     <div class="stat-value">£${totalValue}</div>
                     <div class="stat-label">Total Value</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-icon">🏷️</div>
                     <div class="stat-value">${stats.totalBrands || 0}</div>
                     <div class="stat-label">Brands</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-icon">📈</div>
                     <div class="stat-value">£${profit}</div>
                     <div class="stat-label">Total Profit</div>
                 </div>
             `;
+        }
+
+        // Load Recent Activity
+        async function loadRecentActivity() {
+            try {
+                const response = await fetch('/api/items?limit=10');
+                if (!response.ok) throw new Error('Failed to load recent items');
+
+                const items = await response.json();
+                const recentItems = items.slice(0, 10);
+
+                const activityContainer = document.getElementById('recentActivity');
+
+                if (recentItems.length === 0) {
+                    activityContainer.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 20px;">No recent activity</p>';
+                    return;
+                }
+
+                activityContainer.innerHTML = recentItems.map(item => {
+                    const date = new Date(item.created_at || item.date_added);
+                    const timeAgo = getTimeAgo(date);
+                    const icon = item.is_sold ? '💰' : '📦';
+                    const action = item.is_sold ? 'Sold' : 'Added';
+
+                    return `
+                        <div class="activity-item">
+                            <div class="activity-icon">${icon}</div>
+                            <div class="activity-content">
+                                <div class="activity-title">${action}: ${escapeHtml(item.name)}</div>
+                                <div class="activity-meta">${escapeHtml(item.brand || 'No brand')} • ${escapeHtml(item.size)} • ${timeAgo}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                document.getElementById('recentActivity').innerHTML = '<p style="color: #ef4444;">Failed to load activity</p>';
+            }
+        }
+
+        // Load Top Brands
+        async function loadTopBrands() {
+            try {
+                const response = await fetch('/api/items');
+                if (!response.ok) throw new Error('Failed to load items');
+
+                const items = await response.json();
+
+                // Count items by brand
+                const brandCounts = {};
+                items.forEach(item => {
+                    const brand = item.brand || 'No Brand';
+                    brandCounts[brand] = (brandCounts[brand] || 0) + 1;
+                });
+
+                // Convert to array and sort
+                const topBrands = Object.entries(brandCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+
+                const brandsContainer = document.getElementById('topBrands');
+
+                if (topBrands.length === 0) {
+                    brandsContainer.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 20px;">No brands found</p>';
+                    return;
+                }
+
+                brandsContainer.innerHTML = topBrands.map(([brand, count]) => `
+                    <div class="brand-stat-item">
+                        <div class="brand-stat-name">${escapeHtml(brand)}</div>
+                        <div class="brand-stat-value">
+                            <div class="brand-stat-count">${count}</div>
+                            <div class="brand-stat-label">items</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading top brands:', error);
+                document.getElementById('topBrands').innerHTML = '<p style="color: #ef4444;">Failed to load brands</p>';
+            }
+        }
+
+        // Helper function to calculate time ago
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+
+            const intervals = {
+                year: 31536000,
+                month: 2592000,
+                week: 604800,
+                day: 86400,
+                hour: 3600,
+                minute: 60
+            };
+
+            for (const [name, secondsInInterval] of Object.entries(intervals)) {
+                const interval = Math.floor(seconds / secondsInInterval);
+                if (interval >= 1) {
+                    return interval === 1 ? `1 ${name} ago` : `${interval} ${name}s ago`;
+                }
+            }
+
+            return 'Just now';
         }
 
         function refreshStats() {
