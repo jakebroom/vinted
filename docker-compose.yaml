@@ -8,5 +8,11 @@ services:
     environment:
       - NODE_ENV=production
       - DB_PATH=/app/data/inventory.db
+      # Wasabi Configuration (optional - set these to enable cloud backups)
+      - WASABI_ENABLED=${WASABI_ENABLED:-false}
+      - WASABI_ACCESS_KEY_ID=${WASABI_ACCESS_KEY_ID}
+      - WASABI_SECRET_ACCESS_KEY=${WASABI_SECRET_ACCESS_KEY}
+      - WASABI_BUCKET_NAME=${WASABI_BUCKET_NAME}
+      - WASABI_REGION=${WASABI_REGION:-us-east-1}
     restart: unless-stopped
     container_name: vinted-inventory

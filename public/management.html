@@ -23,6 +23,7 @@
             <button class="nav-tab" data-section="brands">Brand Management</button>
             <button class="nav-tab" data-section="collar-sizes">Collar Size Management</button>
             <button class="nav-tab" data-section="sizes">Size Management</button>
+            <button class="nav-tab" data-section="backups">Backups</button>
             <button class="nav-tab" data-section="export">Export Data</button>
             <button class="nav-tab" data-section="cleanup">Cleanup Tools</button>
         </div>
@@ -97,6 +98,64 @@
                         <div class="brands-grid" id="sizesGrid">
                             <!-- Sizes will be loaded here -->
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backups Section -->
+            <div id="backups" class="section">
+                <h2>Backup Management</h2>
+                <div class="section-content">
+                    <div class="section-header">
+                        <p>Manage local and remote backups of your inventory database</p>
+                    </div>
+
+                    <!-- Wasabi Status -->
+                    <div id="wasabiStatus" class="info-box" style="display: none;">
+                        <h4>☁️ Wasabi Cloud Storage</h4>
+                        <div id="wasabiStatusContent">
+                            <p>Loading status...</p>
+                        </div>
+                    </div>
+
+                    <!-- Create Backup -->
+                    <div class="cleanup-section">
+                        <h3>Create Backup</h3>
+                        <p>Create a new manual backup of your database</p>
+                        <div class="export-buttons">
+                            <button onclick="createBackup()" class="btn">💾 Create Backup Now</button>
+                        </div>
+                    </div>
+
+                    <!-- Local Backups -->
+                    <div class="cleanup-section">
+                        <h3>Local Backups</h3>
+                        <p>Backups stored on this server</p>
+                        <div class="export-buttons">
+                            <button onclick="loadLocalBackups()" class="btn btn-secondary">🔄 Refresh List</button>
+                        </div>
+                        <div id="localBackupsList" class="backups-list">
+                            <p>Loading backups...</p>
+                        </div>
+                    </div>
+
+                    <!-- Remote Backups (Wasabi) -->
+                    <div class="cleanup-section" id="remoteBackupsSection" style="display: none;">
+                        <h3>Remote Backups (Wasabi)</h3>
+                        <p>Backups stored in Wasabi cloud storage</p>
+                        <div class="export-buttons">
+                            <button onclick="loadRemoteBackups()" class="btn btn-secondary">🔄 Refresh List</button>
+                        </div>
+                        <div id="remoteBackupsList" class="backups-list">
+                            <p>Loading remote backups...</p>
+                        </div>
+                    </div>
+
+                    <!-- Automated Backup Info -->
+                    <div class="info-box">
+                        <h4>ℹ️ Automated Backups</h4>
+                        <p>Automatic backups run daily at 3:00 AM. The last 7 automated backups are kept locally.</p>
+                        <p id="wasabiAutoInfo" style="display: none;">When Wasabi is enabled, automated backups are also uploaded to cloud storage.</p>
                     </div>
                 </div>
             </div>
@@ -284,6 +343,8 @@
                 if (window.sizeManager) {
                     sizeManager.loadSizes();
                 }
+            } else if (sectionId === 'backups') {
+                initBackupsSection();
             }
         }
 
@@ -560,6 +621,242 @@
                 console.error('Repair error:', error);
                 showToast('Repair failed', 'error');
             }
+        }
+
+        // Backup Management Functions
+        let wasabiEnabled = false;
+
+        async function initBackupsSection() {
+            await checkWasabiStatus();
+            await loadLocalBackups();
+            if (wasabiEnabled) {
+                await loadRemoteBackups();
+            }
+        }
+
+        async function checkWasabiStatus() {
+            try {
+                const response = await fetch('/api/backups/wasabi/list');
+                if (response.ok) {
+                    wasabiEnabled = true;
+                    document.getElementById('wasabiStatus').style.display = 'block';
+                    document.getElementById('remoteBackupsSection').style.display = 'block';
+                    document.getElementById('wasabiAutoInfo').style.display = 'block';
+                    document.getElementById('wasabiStatusContent').innerHTML = `
+                        <p style="color: #10b981;">✓ Connected to Wasabi cloud storage</p>
+                        <p style="font-size: 0.9em;">Backups are automatically uploaded to remote storage</p>
+                    `;
+                } else {
+                    wasabiEnabled = false;
+                    document.getElementById('wasabiStatus').style.display = 'none';
+                    document.getElementById('remoteBackupsSection').style.display = 'none';
+                }
+            } catch (error) {
+                wasabiEnabled = false;
+                document.getElementById('wasabiStatus').style.display = 'none';
+                document.getElementById('remoteBackupsSection').style.display = 'none';
+            }
+        }
+
+        async function createBackup() {
+            try {
+                showToast('Creating backup...', 'info');
+                const response = await fetch('/api/backups/create', { method: 'POST' });
+                if (!response.ok) throw new Error('Backup creation failed');
+
+                const result = await response.json();
+                const sizeKB = (result.size / 1024).toFixed(2);
+                let message = `Backup created successfully (${sizeKB} KB)`;
+
+                if (result.uploadedToWasabi) {
+                    message += ' and uploaded to Wasabi';
+                }
+
+                showToast(message, 'success');
+                await loadLocalBackups();
+                if (wasabiEnabled) {
+                    await loadRemoteBackups();
+                }
+            } catch (error) {
+                console.error('Backup error:', error);
+                showToast('Failed to create backup', 'error');
+            }
+        }
+
+        async function loadLocalBackups() {
+            try {
+                const response = await fetch('/api/backups');
+                if (!response.ok) throw new Error('Failed to load backups');
+
+                const backups = await response.json();
+                displayLocalBackups(backups);
+            } catch (error) {
+                console.error('Error loading backups:', error);
+                document.getElementById('localBackupsList').innerHTML = `
+                    <p style="color: #ef4444;">Failed to load backups</p>
+                `;
+            }
+        }
+
+        function displayLocalBackups(backups) {
+            const container = document.getElementById('localBackupsList');
+
+            if (backups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No backups found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="backups-table">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${backups.map(backup => {
+                            const sizeKB = (backup.size / 1024).toFixed(2);
+                            const date = new Date(backup.created).toLocaleString();
+                            const typeLabel = backup.type === 'automated' ? '🤖 Auto' : '👤 Manual';
+
+                            return `
+                                <tr>
+                                    <td style="font-family: monospace; font-size: 0.85em;">${escapeHtml(backup.filename)}</td>
+                                    <td>${typeLabel}</td>
+                                    <td>${sizeKB} KB</td>
+                                    <td>${date}</td>
+                                    <td>
+                                        <button onclick="downloadBackup('${escapeHtml(backup.filename)}')" class="btn-small">📥 Download</button>
+                                        ${wasabiEnabled ? `<button onclick="uploadBackupToWasabi('${escapeHtml(backup.filename)}')" class="btn-small">☁️ Upload</button>` : ''}
+                                        <button onclick="deleteBackup('${escapeHtml(backup.filename)}')" class="btn-small btn-danger">🗑️ Delete</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function loadRemoteBackups() {
+            if (!wasabiEnabled) return;
+
+            try {
+                const response = await fetch('/api/backups/wasabi/list');
+                if (!response.ok) throw new Error('Failed to load remote backups');
+
+                const backups = await response.json();
+                displayRemoteBackups(backups);
+            } catch (error) {
+                console.error('Error loading remote backups:', error);
+                document.getElementById('remoteBackupsList').innerHTML = `
+                    <p style="color: #ef4444;">Failed to load remote backups</p>
+                `;
+            }
+        }
+
+        function displayRemoteBackups(backups) {
+            const container = document.getElementById('remoteBackupsList');
+
+            if (backups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No remote backups found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="backups-table">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Size</th>
+                            <th>Last Modified</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${backups.map(backup => {
+                            const sizeKB = (backup.size / 1024).toFixed(2);
+                            const date = new Date(backup.lastModified).toLocaleString();
+
+                            return `
+                                <tr>
+                                    <td style="font-family: monospace; font-size: 0.85em;">${escapeHtml(backup.filename)}</td>
+                                    <td>${sizeKB} KB</td>
+                                    <td>${date}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function downloadBackup(filename) {
+            try {
+                window.location.href = `/api/backups/download/${encodeURIComponent(filename)}`;
+                showToast('Download started', 'success');
+            } catch (error) {
+                console.error('Download error:', error);
+                showToast('Download failed', 'error');
+            }
+        }
+
+        async function uploadBackupToWasabi(filename) {
+            if (!confirm(`Upload "${filename}" to Wasabi cloud storage?`)) {
+                return;
+            }
+
+            try {
+                showToast('Uploading to Wasabi...', 'info');
+                const response = await fetch(`/api/backups/${encodeURIComponent(filename)}/upload-to-wasabi`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Upload failed');
+
+                showToast('Backup uploaded to Wasabi successfully', 'success');
+                await loadRemoteBackups();
+            } catch (error) {
+                console.error('Upload error:', error);
+                showToast('Failed to upload to Wasabi', 'error');
+            }
+        }
+
+        async function deleteBackup(filename) {
+            if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/backups/${encodeURIComponent(filename)}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Delete failed');
+
+                showToast('Backup deleted successfully', 'success');
+                await loadLocalBackups();
+            } catch (error) {
+                console.error('Delete error:', error);
+                showToast('Failed to delete backup', 'error');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Brand Management Class

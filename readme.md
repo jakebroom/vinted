@@ -231,7 +231,16 @@ curl -X PATCH http://localhost:3000/api/items/1/sold \
 export PORT=3000                          # Server port (default: 3000)
 export DB_PATH=./data/inventory.db        # Database path
 export NODE_ENV=production                # Production mode
+
+# Wasabi S3 Configuration (for remote backups)
+export WASABI_ENABLED=true                # Enable Wasabi remote backups
+export WASABI_ACCESS_KEY_ID=your_key      # Wasabi access key
+export WASABI_SECRET_ACCESS_KEY=your_secret # Wasabi secret key
+export WASABI_BUCKET_NAME=your_bucket     # Wasabi bucket name
+export WASABI_REGION=us-east-1            # Wasabi region
 ```
+
+Copy `.env.example` to `.env` and configure your Wasabi credentials for automated remote backups.
 
 ### Custom Port
 ```bash
@@ -241,9 +250,27 @@ PORT=8080 npm start
 ## 💾 Data Management
 
 ### Backup
+
+#### Local Backups
 - **Web Interface**: Use "Download Backup" button in Management page
 - **Manual**: Copy `./data/inventory.db` file
-- **Automated**: Set up cron job to backup `data/` folder
+- **Automated Daily**: Automatic backups run at 3 AM (stored in `./data/backups/`)
+- **Retention**: Last 7 automated backups are kept
+
+#### Remote Backups (Wasabi)
+- **Setup**: Configure Wasabi credentials in `.env` file
+- **Automated**: Daily backups automatically upload to Wasabi when enabled
+- **Manual Upload**: Upload existing backups via API endpoint
+- **List Remote**: View all backups stored in Wasabi
+
+API Endpoints for Wasabi:
+```bash
+# List remote backups
+GET /api/backups/wasabi/list
+
+# Upload existing backup to Wasabi
+POST /api/backups/:filename/upload-to-wasabi
+```
 
 ### Restore
 1. Replace `./data/inventory.db` with your backup file

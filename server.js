@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
@@ -6,10 +7,35 @@ const path = require('path');
 const fs = require('fs');
 const XLSX = require('xlsx');
 const cron = require('node-cron');
+const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.DB_PATH || './data/inventory.db';
+
+// Wasabi S3 Configuration
+const WASABI_ENABLED = process.env.WASABI_ENABLED === 'true';
+const WASABI_ACCESS_KEY_ID = process.env.WASABI_ACCESS_KEY_ID;
+const WASABI_SECRET_ACCESS_KEY = process.env.WASABI_SECRET_ACCESS_KEY;
+const WASABI_BUCKET_NAME = process.env.WASABI_BUCKET_NAME;
+const WASABI_REGION = process.env.WASABI_REGION || 'us-east-1';
+const WASABI_ENDPOINT = process.env.WASABI_ENDPOINT || `https://s3.${WASABI_REGION}.wasabisys.com`;
+
+// Initialize Wasabi S3 Client
+let s3Client = null;
+if (WASABI_ENABLED && WASABI_ACCESS_KEY_ID && WASABI_SECRET_ACCESS_KEY && WASABI_BUCKET_NAME) {
+    s3Client = new S3Client({
+        endpoint: WASABI_ENDPOINT,
+        region: WASABI_REGION,
+        credentials: {
+            accessKeyId: WASABI_ACCESS_KEY_ID,
+            secretAccessKey: WASABI_SECRET_ACCESS_KEY
+        }
+    });
+    console.log('Wasabi S3 client initialized successfully');
+} else if (WASABI_ENABLED) {
+    console.warn('Wasabi is enabled but missing required credentials. Remote backup disabled.');
+}
 
 // Middleware
 app.use(cors());
@@ -1261,16 +1287,25 @@ app.post('/api/backups/create', (req, res) => {
     const backupPath = path.join(BACKUP_DIR, backupFileName);
 
     // Copy database file
-    fs.copyFile(DB_PATH, backupPath, (err) => {
+    fs.copyFile(DB_PATH, backupPath, async (err) => {
         if (err) {
             console.error('Error creating backup:', err.message);
             return res.status(500).json({ error: 'Failed to create backup' });
         }
 
+        const fileSize = fs.statSync(backupPath).size;
+        let wasabiUploaded = false;
+
+        // Upload to Wasabi if configured
+        if (WASABI_ENABLED) {
+            wasabiUploaded = await uploadToWasabi(backupPath, backupFileName);
+        }
+
         res.json({
             message: 'Backup created successfully',
             filename: backupFileName,
-            size: fs.statSync(backupPath).size
+            size: fileSize,
+            uploadedToWasabi: wasabiUploaded
         });
     });
 });
@@ -1339,17 +1374,115 @@ app.delete('/api/backups/:filename', (req, res) => {
     });
 });
 
+// Upload existing backup to Wasabi
+app.post('/api/backups/:filename/upload-to-wasabi', async (req, res) => {
+    if (!WASABI_ENABLED) {
+        return res.status(400).json({ error: 'Wasabi integration is not enabled' });
+    }
+
+    const { filename } = req.params;
+    const backupPath = path.join(BACKUP_DIR, filename);
+
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ error: 'Backup not found' });
+    }
+
+    try {
+        const success = await uploadToWasabi(backupPath, filename);
+
+        if (success) {
+            res.json({
+                message: 'Backup uploaded to Wasabi successfully',
+                filename: filename
+            });
+        } else {
+            res.status(500).json({ error: 'Failed to upload backup to Wasabi' });
+        }
+    } catch (error) {
+        console.error('Error uploading backup to Wasabi:', error);
+        res.status(500).json({ error: 'Failed to upload backup to Wasabi' });
+    }
+});
+
+// List backups on Wasabi
+app.get('/api/backups/wasabi/list', async (req, res) => {
+    if (!WASABI_ENABLED) {
+        return res.status(400).json({ error: 'Wasabi integration is not enabled' });
+    }
+
+    if (!s3Client) {
+        return res.status(500).json({ error: 'Wasabi S3 client not configured' });
+    }
+
+    try {
+        const listParams = {
+            Bucket: WASABI_BUCKET_NAME,
+            Prefix: 'backups/'
+        };
+
+        const command = new ListObjectsV2Command(listParams);
+        const data = await s3Client.send(command);
+
+        const backups = (data.Contents || []).map(item => ({
+            filename: item.Key.replace('backups/', ''),
+            size: item.Size,
+            lastModified: item.LastModified
+        }));
+
+        res.json(backups);
+    } catch (error) {
+        console.error('Error listing Wasabi backups:', error);
+        res.status(500).json({ error: 'Failed to list Wasabi backups' });
+    }
+});
+
+// Upload backup to Wasabi S3
+async function uploadToWasabi(filePath, fileName) {
+    if (!s3Client) {
+        console.log('Wasabi S3 client not configured. Skipping remote backup.');
+        return false;
+    }
+
+    try {
+        const fileStream = fs.createReadStream(filePath);
+        const fileStats = fs.statSync(filePath);
+
+        const uploadParams = {
+            Bucket: WASABI_BUCKET_NAME,
+            Key: `backups/${fileName}`,
+            Body: fileStream,
+            ContentLength: fileStats.size,
+            ContentType: 'application/x-sqlite3'
+        };
+
+        const command = new PutObjectCommand(uploadParams);
+        await s3Client.send(command);
+
+        console.log(`Successfully uploaded ${fileName} to Wasabi`);
+        return true;
+    } catch (error) {
+        console.error('Error uploading to Wasabi:', error.message);
+        return false;
+    }
+}
+
 // Automated backup function
 function createAutomatedBackup() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupFileName = `backup-auto-${timestamp}.db`;
     const backupPath = path.join(BACKUP_DIR, backupFileName);
 
-    fs.copyFile(DB_PATH, backupPath, (err) => {
+    fs.copyFile(DB_PATH, backupPath, async (err) => {
         if (err) {
             console.error('Error creating automated backup:', err.message);
         } else {
             console.log('Automated backup created:', backupFileName);
+
+            // Upload to Wasabi if configured
+            if (WASABI_ENABLED) {
+                await uploadToWasabi(backupPath, backupFileName);
+            }
+
             cleanupOldBackups();
         }
     });
