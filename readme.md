@@ -87,8 +87,8 @@ vinted-inventory/
 ✅ **Database Maintenance** - Optimize, repair, integrity checks
 
 ### Analytics & Insights
-✅ **Dashboard Statistics** - Total items, sold items, active inventory
-✅ **Financial Tracking** - Profit calculations, revenue, inventory value
+✅ **Dashboard Statistics** - Total items, sold items, active inventory, active listings value
+✅ **Financial Tracking** - Profit calculations from sold items
 ✅ **Brand Performance** - See which brands sell best
 ✅ **Location Reports** - Track items by storage location
 ✅ **Charts & Visualizations** - Interactive charts with Chart.js
@@ -238,6 +238,7 @@ export WASABI_ACCESS_KEY_ID=your_key      # Wasabi access key
 export WASABI_SECRET_ACCESS_KEY=your_secret # Wasabi secret key
 export WASABI_BUCKET_NAME=your_bucket     # Wasabi bucket name
 export WASABI_REGION=us-east-1            # Wasabi region
+export WASABI_RETENTION_DAYS=14           # Keep backups for 14 days (default)
 ```
 
 Copy `.env.example` to `.env` and configure your Wasabi credentials for automated remote backups.
@@ -260,6 +261,7 @@ PORT=8080 npm start
 #### Remote Backups (Wasabi)
 - **Setup**: Configure Wasabi credentials in `.env` file
 - **Automated**: Daily backups automatically upload to Wasabi when enabled
+- **Retention**: Automatically deletes backups older than 14 days (configurable via `WASABI_RETENTION_DAYS`)
 - **Manual Upload**: Upload existing backups via API endpoint
 - **List Remote**: View all backups stored in Wasabi
 
@@ -272,9 +274,27 @@ GET /api/backups/wasabi/list
 POST /api/backups/:filename/upload-to-wasabi
 ```
 
+**Retention Policy**: By default, Wasabi backups older than 14 days are automatically deleted during the daily backup process. You can customize this by setting `WASABI_RETENTION_DAYS` in your `.env` file (e.g., `WASABI_RETENTION_DAYS=30` for 30 days).
+
 ### Restore
-1. Replace `./data/inventory.db` with your backup file
-2. Restart the application: `npm start`
+
+#### Via Web Interface (Recommended)
+1. Go to Management page → Database Backups section
+2. Click "Restore" next to the backup you want to restore
+3. Confirm the restoration
+4. The system will automatically:
+   - Create a safety backup of your current database
+   - Close the database connection
+   - Replace the database with the selected backup
+   - Reopen and validate the connection
+   - Roll back if any issues are detected
+
+#### Manual Restore
+1. Stop the application
+2. Replace `./data/inventory.db` with your backup file
+3. Restart the application: `npm start`
+
+**API Endpoint**: `POST /api/backups/:filename/restore`
 
 ### Database Maintenance
 - **Optimize**: Management page → Database Maintenance → Optimize

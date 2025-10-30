@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Labels as PDF</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background: #f5f5f5;
+        }
+        .controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .controls h1 {
+            font-size: 18px;
+            margin-right: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            color: #666;
+            font-size: 14px;
+        }
+        .items-container {
+            margin-top: 80px;
+            padding: 20px;
+        }
+        .items-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background: #f8f9fa;
+        }
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid #dee2e6;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .item-id {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .item-name {
+            font-weight: 500;
+        }
+        .no-items {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h1>Export Labels as PDF</h1>
+        <button class="btn btn-success" onclick="selectAll()">✓ Select All</button>
+        <button class="btn btn-secondary" onclick="deselectAll()">✗ Deselect All</button>
+        <button class="btn" id="exportBtn" onclick="exportToPDF()" disabled>📄 Export Selected as PDF</button>
+        <button class="btn btn-secondary" onclick="window.location.href='/'">← Back</button>
+        <div class="status" id="status">Loading items...</div>
+    </div>
+
+    <div class="items-container">
+        <div class="items-table" id="itemsTable">
+            <!-- Table will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        let allItems = [];
+
+        function selectAll() {
+            document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = true);
+            updateSelection();
+        }
+
+        function deselectAll() {
+            document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+            updateSelection();
+        }
+
+        function updateSelection() {
+            const selectedCount = document.querySelectorAll('.item-checkbox:checked').length;
+            const totalCount = document.querySelectorAll('.item-checkbox').length;
+            document.getElementById('status').textContent = `${selectedCount} of ${totalCount} items selected`;
+            document.getElementById('exportBtn').disabled = selectedCount === 0;
+        }
+
+        async function exportToPDF() {
+            const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
+            const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+
+            if (selectedIds.length === 0) {
+                alert('Please select at least one item to export');
+                return;
+            }
+
+            try {
+                document.getElementById('status').textContent = `Generating PDF for ${selectedIds.length} labels...`;
+                document.getElementById('exportBtn').disabled = true;
+
+                const response = await fetch('/api/export/labels-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ itemIds: selectedIds })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate PDF');
+                }
+
+                // Download the PDF
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `labels-${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                document.getElementById('status').textContent = `PDF generated successfully with ${selectedIds.length} labels!`;
+                document.getElementById('exportBtn').disabled = false;
+
+            } catch (error) {
+                console.error('Error exporting PDF:', error);
+                alert('Failed to export PDF: ' + error.message);
+                document.getElementById('status').textContent = `${document.querySelectorAll('.item-checkbox:checked').length} of ${document.querySelectorAll('.item-checkbox').length} items selected`;
+                document.getElementById('exportBtn').disabled = false;
+            }
+        }
+
+        async function loadAllItems() {
+            try {
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = 'Loading items...';
+
+                // Fetch all available items
+                const response = await fetch('/api/items?status=available');
+                if (!response.ok) throw new Error('Failed to load items');
+
+                allItems = await response.json();
+
+                const container = document.getElementById('itemsTable');
+
+                if (allItems.length === 0) {
+                    statusEl.textContent = 'No available items found';
+                    container.innerHTML = '<div class="no-items">No available items to export</div>';
+                    return;
+                }
+
+                // Build table
+                let tableHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="checkbox-cell">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)">
+                                </th>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Brand</th>
+                                <th>Size</th>
+                                <th>Color</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                allItems.forEach(item => {
+                    const itemIdFormatted = '#' + String(item.id).padStart(3, '0');
+                    const price = item.selling_price || item.price;
+                    const priceFormatted = price ? '£' + parseFloat(price).toFixed(2) : '-';
+
+                    tableHTML += `
+                        <tr>
+                            <td class="checkbox-cell">
+                                <input type="checkbox" class="item-checkbox" value="${item.id}" onchange="updateSelection()">
+                            </td>
+                            <td class="item-id">${itemIdFormatted}</td>
+                            <td class="item-name">${escapeHtml(item.name)}</td>
+                            <td>${escapeHtml(item.brand || 'N/A')}</td>
+                            <td>${escapeHtml(item.size)}</td>
+                            <td>${escapeHtml(item.color)}</td>
+                            <td>${priceFormatted}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+
+                container.innerHTML = tableHTML;
+                statusEl.textContent = `${allItems.length} items available`;
+
+            } catch (error) {
+                console.error('Error loading items:', error);
+                document.getElementById('status').textContent = 'Error loading items';
+                document.getElementById('itemsTable').innerHTML = '<div class="no-items">Failed to load items</div>';
+            }
+        }
+
+        function toggleAll(checkbox) {
+            document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = checkbox.checked);
+            updateSelection();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load items when page loads
+        window.onload = loadAllItems;
+    </script>
+</body>
+</html>

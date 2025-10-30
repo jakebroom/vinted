@@ -7,7 +7,9 @@ const path = require('path');
 const fs = require('fs');
 const XLSX = require('xlsx');
 const cron = require('node-cron');
-const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const PDFDocument = require('pdfkit');
+const QRCode = require('qrcode');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +22,7 @@ const WASABI_SECRET_ACCESS_KEY = process.env.WASABI_SECRET_ACCESS_KEY;
 const WASABI_BUCKET_NAME = process.env.WASABI_BUCKET_NAME;
 const WASABI_REGION = process.env.WASABI_REGION || 'us-east-1';
 const WASABI_ENDPOINT = process.env.WASABI_ENDPOINT || `https://s3.${WASABI_REGION}.wasabisys.com`;
+const WASABI_RETENTION_DAYS = parseInt(process.env.WASABI_RETENTION_DAYS) || 14; // Keep 14 days of backups
 
 // Initialize Wasabi S3 Client
 let s3Client = null;
@@ -1059,26 +1062,26 @@ app.get('/api/stats', (req, res) => {
             stats.soldItems = result.count;
             stats.activeItems = stats.totalItems - stats.soldItems;
             
-            // Get total value
+            // Get active listings value (sum of selling prices for unsold items)
             db.get('SELECT SUM(COALESCE(selling_price, price, 0)) as total FROM items WHERE (is_sold = 0 OR is_sold IS NULL)', [], (err, result) => {
                 if (err) {
                     console.error('Error getting total value:', err.message);
                     return res.status(500).json({ error: 'Failed to get statistics' });
                 }
-                stats.totalValue = (result.total || 0).toFixed(2);
+                stats.totalValue = (parseFloat(result.total) || 0).toFixed(2);
                 
                 // Get profit calculation
                 db.get(`
-                    SELECT 
+                    SELECT
                         SUM(COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)) as profit
-                    FROM items 
+                    FROM items
                     WHERE is_sold = 1 AND bought_price IS NOT NULL
                 `, [], (err, result) => {
                     if (err) {
                         console.error('Error getting profit:', err.message);
                         return res.status(500).json({ error: 'Failed to get statistics' });
                     }
-                    stats.profit = (result.profit || 0).toFixed(2);
+                    stats.profit = (parseFloat(result.profit) || 0).toFixed(2);
                     
                     // Get brands count
                     db.get('SELECT COUNT(*) as count FROM brands WHERE is_active = 1', [], (err, result) => {
@@ -1374,6 +1377,121 @@ app.delete('/api/backups/:filename', (req, res) => {
     });
 });
 
+// Restore backup
+app.post('/api/backups/:filename/restore', (req, res) => {
+    const { filename } = req.params;
+    const backupPath = path.join(BACKUP_DIR, filename);
+
+    // Validate backup file exists
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ error: 'Backup file not found' });
+    }
+
+    console.log(`Starting restore process from backup: ${filename}`);
+
+    // Create a safety backup of the current database
+    const safetyBackupPath = path.join(BACKUP_DIR, `safety-backup-${Date.now()}.db`);
+
+    fs.copyFile(DB_PATH, safetyBackupPath, (copyErr) => {
+        if (copyErr) {
+            console.error('Error creating safety backup:', copyErr.message);
+            return res.status(500).json({ error: 'Failed to create safety backup before restore' });
+        }
+
+        console.log('Safety backup created:', safetyBackupPath);
+
+        // Close current database connection
+        db.close((closeErr) => {
+            if (closeErr) {
+                console.error('Error closing database:', closeErr.message);
+                return res.status(500).json({ error: 'Failed to close database connection' });
+            }
+
+            console.log('Database connection closed');
+
+            // Replace current database with backup
+            fs.copyFile(backupPath, DB_PATH, (restoreErr) => {
+                if (restoreErr) {
+                    console.error('Error restoring backup:', restoreErr.message);
+
+                    // Try to restore the safety backup
+                    fs.copyFile(safetyBackupPath, DB_PATH, (rollbackErr) => {
+                        if (rollbackErr) {
+                            console.error('CRITICAL: Failed to rollback to safety backup:', rollbackErr.message);
+                        }
+
+                        // Reopen the database (either restored safety backup or original if rollback failed)
+                        reopenDatabase();
+                        return res.status(500).json({ error: 'Failed to restore backup. Database rolled back to previous state.' });
+                    });
+                    return;
+                }
+
+                console.log('Database file replaced with backup');
+
+                // Reopen database connection
+                reopenDatabase();
+
+                // Test the restored database
+                setTimeout(() => {
+                    db.get('SELECT COUNT(*) as count FROM items', [], (testErr, result) => {
+                        if (testErr) {
+                            console.error('Error testing restored database:', testErr.message);
+
+                            // Restore safety backup
+                            db.close(() => {
+                                fs.copyFile(safetyBackupPath, DB_PATH, (rollbackErr) => {
+                                    if (rollbackErr) {
+                                        console.error('CRITICAL: Failed to rollback:', rollbackErr.message);
+                                    }
+                                    reopenDatabase();
+                                });
+                            });
+
+                            return res.status(500).json({ error: 'Restored database is corrupted. Rolled back to previous state.' });
+                        }
+
+                        console.log(`Database restored successfully. Contains ${result.count} items.`);
+
+                        // Clean up safety backup after 5 minutes (give time to verify restore worked)
+                        setTimeout(() => {
+                            fs.unlink(safetyBackupPath, (unlinkErr) => {
+                                if (unlinkErr) {
+                                    console.error('Error deleting safety backup:', unlinkErr.message);
+                                } else {
+                                    console.log('Safety backup cleaned up');
+                                }
+                            });
+                        }, 5 * 60 * 1000);
+
+                        res.json({
+                            message: 'Database restored successfully',
+                            filename: filename,
+                            itemCount: result.count,
+                            safetyBackup: path.basename(safetyBackupPath)
+                        });
+                    });
+                }, 500); // Give database time to fully initialize
+            });
+        });
+    });
+});
+
+// Helper function to reopen database connection
+function reopenDatabase() {
+    const sqlite3 = require('sqlite3').verbose();
+    const newDb = new sqlite3.Database(DB_PATH, (err) => {
+        if (err) {
+            console.error('Error reopening database:', err.message);
+        } else {
+            console.log('Database connection reopened');
+        }
+    });
+
+    // Replace global db object
+    Object.assign(db, newDb);
+}
+
 // Upload existing backup to Wasabi
 app.post('/api/backups/:filename/upload-to-wasabi', async (req, res) => {
     if (!WASABI_ENABLED) {
@@ -1466,6 +1584,69 @@ async function uploadToWasabi(filePath, fileName) {
     }
 }
 
+// Cleanup old Wasabi backups (keep only backups within retention period)
+async function cleanupOldWasabiBackups() {
+    if (!s3Client) {
+        console.log('Wasabi S3 client not configured. Skipping remote backup cleanup.');
+        return;
+    }
+
+    try {
+        // List all backups in Wasabi
+        const listParams = {
+            Bucket: WASABI_BUCKET_NAME,
+            Prefix: 'backups/'
+        };
+
+        const listCommand = new ListObjectsV2Command(listParams);
+        const data = await s3Client.send(listCommand);
+
+        if (!data.Contents || data.Contents.length === 0) {
+            console.log('No Wasabi backups found to cleanup');
+            return;
+        }
+
+        // Calculate cutoff date (backups older than retention period)
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - WASABI_RETENTION_DAYS);
+
+        // Filter backups older than retention period
+        const backupsToDelete = data.Contents.filter(item => {
+            return item.LastModified < cutoffDate;
+        });
+
+        if (backupsToDelete.length === 0) {
+            console.log(`No Wasabi backups older than ${WASABI_RETENTION_DAYS} days to cleanup`);
+            return;
+        }
+
+        console.log(`Cleaning up ${backupsToDelete.length} old Wasabi backup(s)...`);
+
+        // Delete old backups
+        for (const backup of backupsToDelete) {
+            try {
+                const deleteParams = {
+                    Bucket: WASABI_BUCKET_NAME,
+                    Key: backup.Key
+                };
+
+                const deleteCommand = new DeleteObjectCommand(deleteParams);
+                await s3Client.send(deleteCommand);
+
+                const fileName = backup.Key.replace('backups/', '');
+                const age = Math.floor((new Date() - backup.LastModified) / (1000 * 60 * 60 * 24));
+                console.log(`Deleted old Wasabi backup: ${fileName} (${age} days old)`);
+            } catch (deleteError) {
+                console.error(`Error deleting Wasabi backup ${backup.Key}:`, deleteError.message);
+            }
+        }
+
+        console.log(`Wasabi backup cleanup completed. Deleted ${backupsToDelete.length} old backup(s).`);
+    } catch (error) {
+        console.error('Error during Wasabi backup cleanup:', error.message);
+    }
+}
+
 // Automated backup function
 function createAutomatedBackup() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1481,6 +1662,8 @@ function createAutomatedBackup() {
             // Upload to Wasabi if configured
             if (WASABI_ENABLED) {
                 await uploadToWasabi(backupPath, backupFileName);
+                // Cleanup old Wasabi backups
+                await cleanupOldWasabiBackups();
             }
 
             cleanupOldBackups();
@@ -1870,22 +2053,22 @@ app.get('/api/export/brand-report', (req, res) => {
 // Export profit report
 app.get('/api/export/profit-report', (req, res) => {
     const sql = `
-        SELECT 
-            id, name, brand, 
+        SELECT
+            id, name, brand,
             COALESCE(bought_price, 0) as bought_price,
             COALESCE(selling_price, price, 0) as selling_price,
             COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0) as profit,
-            CASE 
-                WHEN COALESCE(bought_price, 0) > 0 
-                THEN ((COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)) / COALESCE(bought_price, 0)) * 100 
-                ELSE 0 
+            CASE
+                WHEN COALESCE(bought_price, 0) > 0
+                THEN ((COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)) / COALESCE(bought_price, 0)) * 100
+                ELSE 0
             END as profit_margin_percent,
             is_sold, date_added, sold_date
-        FROM items 
+        FROM items
         WHERE bought_price IS NOT NULL AND (selling_price IS NOT NULL OR price IS NOT NULL)
         ORDER BY profit DESC
     `;
-    
+
     db.all(sql, [], (err, rows) => {
         if (err) {
             console.error('Error generating profit report:', err.message);
@@ -1906,12 +2089,125 @@ app.get('/api/export/profit-report', (req, res) => {
                     `"${row.sold_date || ''}"`
                 ].join(',');
             }).join('\n');
-            
+
             res.setHeader('Content-Type', 'text/csv');
             res.setHeader('Content-Disposition', `attachment; filename="profit-report-${new Date().toISOString().split('T')[0]}.csv"`);
             res.send(csvHeader + csvRows);
         }
     });
+});
+
+// Export labels as PDF
+app.post('/api/export/labels-pdf', async (req, res) => {
+    try {
+        const { itemIds } = req.body;
+
+        if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+            return res.status(400).json({ error: 'No item IDs provided' });
+        }
+
+        // Fetch items from database
+        const placeholders = itemIds.map(() => '?').join(',');
+        const sql = `
+            SELECT id, item_number, name, brand, color, size, collar_size,
+                   condition_item, COALESCE(selling_price, price, 0) as price
+            FROM items
+            WHERE id IN (${placeholders})
+            ORDER BY id DESC
+        `;
+
+        db.all(sql, itemIds, async (err, items) => {
+            if (err) {
+                console.error('Error fetching items:', err);
+                return res.status(500).json({ error: 'Failed to fetch items' });
+            }
+
+            if (items.length === 0) {
+                return res.status(404).json({ error: 'No items found' });
+            }
+
+            try {
+                // Create PDF document - 40mm x 30mm
+                const doc = new PDFDocument({
+                    size: [113.39, 85.04], // 40mm x 30mm in points (1mm = 2.83465 points)
+                    margins: { top: 5, bottom: 5, left: 5, right: 5 }
+                });
+
+                // Set response headers
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename="labels-${new Date().toISOString().split('T')[0]}.pdf"`);
+
+                // Pipe PDF to response
+                doc.pipe(res);
+
+                // Generate labels
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+
+                    // Add new page for each label (except first)
+                    if (i > 0) {
+                        doc.addPage();
+                    }
+
+                    // Left column - text info
+                    const leftColWidth = 55;
+                    const qrSize = 48; // Larger QR code for better scanning
+                    const qrX = leftColWidth + 5;
+
+                    // Item ID - larger and bold
+                    doc.fontSize(12)
+                       .font('Helvetica-Bold')
+                       .text(`#${String(item.id).padStart(3, '0')}`, 5, 5);
+
+                    // Item name - compact with more space after ID
+                    doc.fontSize(6)
+                       .font('Helvetica-Bold')
+                       .text(item.name, 5, 20, { width: leftColWidth - 5, lineGap: 0.5 });
+
+                    let yPos = doc.y + 2;
+
+                    // Item details - very compact
+                    doc.fontSize(5)
+                       .font('Helvetica')
+                       .text(`${item.brand || 'N/A'}`, 5, yPos, { width: leftColWidth - 5 });
+
+                    yPos = doc.y + 1;
+                    doc.text(`Size: ${item.size}${item.collar_size ? ` (${item.collar_size})` : ''}`, 5, yPos, { width: leftColWidth - 5 });
+
+                    yPos = doc.y + 1;
+                    doc.text(`${item.color}`, 5, yPos, { width: leftColWidth - 5 });
+
+                    // Generate QR code - larger for better scanning
+                    const qrUrl = `${req.protocol}://${req.get('host')}/?item=${item.id}&popup=true`;
+                    const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
+                        width: 200,
+                        margin: 1,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        }
+                    });
+
+                    // Convert data URL to buffer
+                    const qrBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
+
+                    // Add QR code image on the right side - larger
+                    doc.image(qrBuffer, qrX, 15, { width: qrSize, height: qrSize });
+                }
+
+                // Finalize PDF
+                doc.end();
+
+            } catch (pdfError) {
+                console.error('Error generating PDF:', pdfError);
+                res.status(500).json({ error: 'Failed to generate PDF' });
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in PDF export:', error);
+        res.status(500).json({ error: 'Failed to export labels' });
+    }
 });
 
 // Export location report
@@ -1976,6 +2272,32 @@ app.get('/api/backup', (req, res) => {
 });
 
 // ================================
+// HEALTH CHECK ENDPOINT
+// ================================
+
+// Health check endpoint for Docker and monitoring
+app.get('/health', (req, res) => {
+    // Check database connectivity
+    db.get('SELECT 1 as health_check', [], (err) => {
+        if (err) {
+            console.error('Health check failed - database unavailable:', err.message);
+            return res.status(503).json({
+                status: 'unhealthy',
+                error: 'Database unavailable',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        res.status(200).json({
+            status: 'healthy',
+            database: 'connected',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime()
+        });
+    });
+});
+
+// ================================
 // SERVE STATIC FILES
 // ================================
 
@@ -1990,6 +2312,10 @@ app.get('/manage', (req, res) => {
 
 app.get('/insights', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'insights.html'));
+});
+
+app.get('/print-all-labels', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'print-all-labels.html'));
 });
 
 // QR Code generation
@@ -2036,6 +2362,7 @@ process.on('SIGINT', () => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log('Available endpoints:');
+    console.log('  GET  /health              - Health check endpoint');
     console.log('  GET  /                    - Main inventory page');
     console.log('  GET  /manage              - Management page');
     console.log('  GET  /insights            - Insights page');

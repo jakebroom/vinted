@@ -444,7 +444,7 @@
                 <div class="stat-card">
                     <div class="stat-icon">💵</div>
                     <div class="stat-value">£${totalValue}</div>
-                    <div class="stat-label">Total Value</div>
+                    <div class="stat-label">Active Listings Value</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">🏷️</div>
@@ -899,6 +899,7 @@
                                     <td>${sizeKB} KB</td>
                                     <td>${date}</td>
                                     <td>
+                                        <button onclick="restoreBackup('${escapeHtml(backup.filename)}')" class="btn-small" style="background: linear-gradient(135deg, #10b981, #059669);">🔄 Restore</button>
                                         <button onclick="downloadBackup('${escapeHtml(backup.filename)}')" class="btn-small">📥 Download</button>
                                         ${wasabiEnabled ? `<button onclick="uploadBackupToWasabi('${escapeHtml(backup.filename)}')" class="btn-small">☁️ Upload</button>` : ''}
                                         <button onclick="deleteBackup('${escapeHtml(backup.filename)}')" class="btn-small btn-danger">🗑️ Delete</button>
@@ -1015,6 +1016,53 @@
             } catch (error) {
                 console.error('Delete error:', error);
                 showToast('Failed to delete backup', 'error');
+            }
+        }
+
+        async function restoreBackup(filename) {
+            const confirmMessage = `⚠️ RESTORE DATABASE WARNING ⚠️
+
+Are you sure you want to restore from "${filename}"?
+
+This will:
+• Create a safety backup of your current database
+• Replace your current database with the selected backup
+• All current data will be replaced with data from the backup
+
+Type "RESTORE" to confirm this action:`;
+
+            const confirmation = prompt(confirmMessage);
+
+            if (confirmation !== 'RESTORE') {
+                if (confirmation !== null) {
+                    showToast('Restore cancelled - confirmation text did not match', 'error');
+                }
+                return;
+            }
+
+            try {
+                showToast('Restoring database... This may take a moment.', 'info');
+
+                const response = await fetch(`/api/backups/${encodeURIComponent(filename)}/restore`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Restore failed');
+                }
+
+                showToast(`✅ Database restored successfully! Contains ${result.itemCount} items. Safety backup: ${result.safetyBackup}`, 'success');
+
+                // Reload the page after 2 seconds to refresh all data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Restore error:', error);
+                showToast(`Failed to restore backup: ${error.message}`, 'error');
             }
         }
 

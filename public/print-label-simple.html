@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Print Label</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            width: 50mm;
+            height: 80mm;
+        }
+        .id { font-size: 12pt; font-weight: bold; margin-bottom: 5px; }
+        .name { font-size: 11pt; font-weight: bold; margin-bottom: 8px; }
+        .info { font-size: 9pt; margin-bottom: 3px; }
+        .price { font-size: 14pt; font-weight: bold; margin-top: 10px; }
+        @media print {
+            @page { size: 50mm 80mm; margin: 5mm; }
+            body { margin: 0; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="content">Loading...</div>
+    <script>
+        async function loadLabel() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const itemId = urlParams.get('id');
+            if (!itemId) { alert('No item ID'); return; }
+
+            const response = await fetch('/api/items/' + itemId);
+            const item = await response.json();
+
+            const price = item.selling_price || item.price;
+            const priceText = price ? '£' + parseFloat(price).toFixed(2) : '';
+
+            document.getElementById('content').innerHTML = `
+                <div class="id">#${String(item.id).padStart(3, '0')}</div>
+                <div class="name">${item.name}</div>
+                <div class="info">${item.brand || 'N/A'}</div>
+                <div class="info">Size: ${item.size}${item.collar_size ? ' / ' + item.collar_size : ''}</div>
+                <div class="info">Color: ${item.color}</div>
+                <div class="info">${item.condition_item || ''}</div>
+                ${priceText ? `<div class="price">${priceText}</div>` : ''}
+            `;
+
+            setTimeout(() => window.print(), 500);
+        }
+        window.onload = loadLabel;
+    </script>
+</body>
+</html>
