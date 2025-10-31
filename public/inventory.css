@@ -1,21 +1,11 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* ============================================
+   INVENTORY PAGE - SPECIFIC STYLES
+   ============================================
+   Page-specific styles for the inventory table view.
+   Common styles are in shared.css
+   ============================================ */
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    padding: 20px;
-}
-
-.container {
-    max-width: 1800px;
-    margin: 0 auto;
-}
-
+/* Header Layout */
 .header {
     display: flex;
     justify-content: space-between;
@@ -25,37 +15,13 @@ body {
     gap: 20px;
 }
 
-h1 {
-    color: white;
-    font-size: 2.5em;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
 .nav-buttons {
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
 }
 
-.btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
+/* Glassmorphism Button Variants */
 .btn-secondary {
     background: rgba(255,255,255,0.2);
     border: 2px solid rgba(255,255,255,0.3);
@@ -66,11 +32,7 @@ h1 {
     border-color: rgba(255,255,255,0.5);
 }
 
-.btn-small {
-    padding: 8px 16px;
-    font-size: 14px;
-}
-
+/* Gradient Button Variants */
 .btn-success {
     background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
 }
@@ -79,14 +41,11 @@ h1 {
     background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
 }
 
-.btn-danger {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-}
-
 .btn-info {
     background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
 }
 
+/* Controls Section */
 .controls {
     background: rgba(255,255,255,0.1);
     padding: 20px;
@@ -97,6 +56,7 @@ h1 {
     align-items: center;
     flex-wrap: wrap;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .search-input {
@@ -135,8 +95,10 @@ h1 {
     color: white;
     text-align: center;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
+/* Table Specific Styles */
 .table-container {
     background: white;
     border-radius: 15px;
@@ -150,22 +112,10 @@ h1 {
 }
 
 table {
-    width: 100%;
-    border-collapse: collapse;
     font-size: 14px;
 }
 
-thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
 th {
-    padding: 15px 12px;
-    text-align: left;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
@@ -185,14 +135,7 @@ th:hover {
 }
 
 tbody tr {
-    border-bottom: 1px solid #eee;
-    transition: all 0.2s ease;
     cursor: pointer;
-}
-
-tbody tr:hover {
-    background: #f8f9fa;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 tbody tr.sold {
@@ -205,7 +148,6 @@ tbody tr.sold:hover {
 }
 
 td {
-    padding: 12px;
     vertical-align: middle;
     white-space: nowrap;
     overflow: hidden;
@@ -213,6 +155,7 @@ td {
     max-width: 200px;
 }
 
+/* Cell Specific Styles */
 .id-cell {
     font-weight: 600;
     color: #667eea;
@@ -239,15 +182,7 @@ td {
     text-align: center;
 }
 
-.status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
+/* Status Badges */
 .status-available {
     background: #d4edda;
     color: #155724;
@@ -256,12 +191,6 @@ td {
 .status-sold {
     background: #fff3cd;
     color: #856404;
-}
-
-.loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
 }
 
 .empty-state {
@@ -301,65 +230,10 @@ td {
     font-weight: bold;
 }
 
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.8);
-    animation: fadeIn 0.3s ease;
-}
-
-.modal-content {
-    background: white;
-    margin: 5% auto;
-    padding: 0;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    animation: slideIn 0.3s ease;
-}
-
-.modal-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px 30px;
-    border-radius: 15px 15px 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
+/* Modal Overrides for Item Details */
 .modal-title {
     font-size: 1.5em;
     font-weight: 600;
-}
-
-.close {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 5px 10px;
-    border-radius: 5px;
-    transition: background 0.2s ease;
-}
-
-.close:hover {
-    background: rgba(255,255,255,0.3);
-}
-
-.modal-body {
-    padding: 30px;
 }
 
 .item-detail-grid {
@@ -427,69 +301,157 @@ td {
     margin-bottom: 15px;
 }
 
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: #333;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    padding: 10px;
-    border: 2px solid #e1e5e9;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: border-color 0.3s ease;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-group select option {
-    background: white !important;
-    background-color: white !important;
-    color: #333 !important;
-}
-
-.modal select option {
-    background: white !important;
-    background-color: white !important;
-    color: #333 !important;
-}
-
-.form-group textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideIn {
-    from { transform: translateY(-50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
+/* Additional Animations */
 @keyframes slideInNotification {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* Responsive design */
+/* Backup Management Modal */
+.backup-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.backup-item.auto {
+    border-left-color: #2ecc71;
+}
+
+.backup-info {
+    flex: 1;
+}
+
+.backup-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.backup-meta {
+    font-size: 12px;
+    color: #666;
+}
+
+.backup-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.backup-actions button {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Import/Export Section */
+.import-section {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.import-section h4 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.file-input-wrapper {
+    margin-bottom: 15px;
+}
+
+.file-input-wrapper input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #667eea;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+}
+
+.format-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.format-selector label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+/* Pagination Styles */
+.pagination-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 0 0 10px 10px;
+    align-items: center;
+}
+
+.pagination-info {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pagination-buttons .btn {
+    min-width: 80px;
+}
+
+.pagination-buttons .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-number {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 0 15px;
+}
+
+.pagination-options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+}
+
+.pagination-options label {
+    font-weight: 500;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
 @media (max-width: 768px) {
     .header {
         flex-direction: column;
@@ -509,25 +471,31 @@ td {
         grid-template-columns: 1fr;
     }
 
-    .modal-content {
-        margin: 10% auto;
-        width: 95%;
-    }
-
-    .modal-header {
-        padding: 15px 20px;
-    }
-
-    .modal-body {
-        padding: 20px;
-    }
-
     table {
         font-size: 12px;
     }
 
     th, td {
         padding: 8px 6px;
+    }
+
+    .pagination-controls {
+        padding: 15px;
+    }
+
+    .pagination-buttons {
+        gap: 5px;
+    }
+
+    .pagination-buttons .btn {
+        min-width: 60px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .page-number {
+        font-size: 14px;
+        padding: 0 10px;
     }
 }
 
@@ -639,173 +607,11 @@ td {
         font-size: 12px;
         color: #666;
     }
-
 }
 
 /* Desktop view - hide mobile card view */
 @media (min-width: 768px) {
     #mobileCardView {
         display: none !important;
-    }
-}
-
-/* Backup Management Modal */
-.backup-list {
-    max-height: 400px;
-    overflow-y: auto;
-    margin-top: 15px;
-}
-
-.backup-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    margin-bottom: 8px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #667eea;
-}
-
-.backup-item.auto {
-    border-left-color: #2ecc71;
-}
-
-.backup-info {
-    flex: 1;
-}
-
-.backup-name {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 4px;
-}
-
-.backup-meta {
-    font-size: 12px;
-    color: #666;
-}
-
-.backup-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.backup-actions button {
-    padding: 6px 12px;
-    font-size: 12px;
-}
-
-/* Import/Export Section */
-.import-section {
-    margin-top: 20px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 10px;
-}
-
-.import-section h4 {
-    margin-bottom: 15px;
-    color: #333;
-}
-
-.file-input-wrapper {
-    margin-bottom: 15px;
-}
-
-.file-input-wrapper input[type="file"] {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    border: 2px dashed #667eea;
-    border-radius: 8px;
-    background: white;
-    cursor: pointer;
-}
-
-.format-selector {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.format-selector label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-}
-
-/* Pagination Styles */
-.pagination-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border-radius: 0 0 10px 10px;
-    align-items: center;
-}
-
-.pagination-info {
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.pagination-buttons {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.pagination-buttons .btn {
-    min-width: 80px;
-}
-
-.pagination-buttons .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.page-number {
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 0 15px;
-}
-
-.pagination-options {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-}
-
-.pagination-options label {
-    font-weight: 500;
-}
-
-@media (max-width: 768px) {
-    .pagination-controls {
-        padding: 15px;
-    }
-
-    .pagination-buttons {
-        gap: 5px;
-    }
-
-    .pagination-buttons .btn {
-        min-width: 60px;
-        padding: 6px 10px;
-        font-size: 12px;
-    }
-
-    .page-number {
-        font-size: 14px;
-        padding: 0 10px;
     }
 }
