@@ -77,13 +77,20 @@ Key patterns:
 ### Frontend Structure
 
 **Public Directory** (`./public/`):
-- `inventory.html` + `inventory.css`: Main table view with search, filter, sorting
-- `management.html` + `management.css`: Item creation, brand/size management, database maintenance
+- `shared.css`: Common design system with CSS variables, modal system, buttons, forms (v1.1.0+)
+- `inventory.html` + `inventory.css`: Main table view with search, filter, sorting, pagination
+- `management.html` + `management.css`: Item creation, brand/size management, database maintenance, overview dashboard
 - `insights.html` + `insights.css`: Analytics dashboard with Chart.js visualizations
 - `print-label.html`, `print-all-labels.html`, `print-label-simple.html`: QR code label printing
 - All use vanilla JavaScript (no frameworks), fetch API for backend calls
 
-Design system: Purple gradient theme (#667eea → #764ba2), glassmorphism effects, responsive flexbox layouts
+**Design System** (v1.1.2):
+- Purple gradient theme (#667eea → #764ba2) with glassmorphism effects
+- Shared CSS architecture: `shared.css` contains base styles, page-specific CSS for customizations
+- Modal system: CSS class-based (`.show`) with flexbox centering, click-outside-to-close
+- Button variants: Purple gradient primary, teal toggle, red danger/delete with shadows and hover lifts
+- Responsive design: Mobile card view for inventory (<768px), desktop table view (≥768px)
+- Accessibility: Focus states, 44px touch targets, WCAG 2.1 AA contrast ratios
 
 ### Key Technical Patterns
 
@@ -186,8 +193,36 @@ All reference tables (brands, sizes, collar_sizes) follow the same API pattern:
 ## Important Notes
 
 - **Database File**: Must be writable. Docker uses non-root user, ensure permissions on `./data/`
-- **Graceful Shutdown**: SIGINT handler closes database connection properly (server.js:2167-2178)
+- **Graceful Shutdown**: SIGINT and SIGTERM handlers close database connection properly (server.js, v1.1.0+)
 - **Legacy Fields**: `price` field kept for backwards compatibility, prefer `selling_price`
 - **QR Codes**: Generated server-side using `qrcode` library, embedded in PDFs and HTML
 - **No Build Process**: Pure vanilla JS/CSS, no transpilation or bundling needed
 - **Health Check**: GET `/health` endpoint checks database connectivity, returns 200 (healthy) or 503 (unhealthy) with uptime info
+- **Modal System**: All modals use CSS classes (`.show`) instead of inline styles for proper centering (v1.1.2)
+- **Stats API**: Returns `activeItems` (not `availableItems`) for unsold item count
+
+## CSS Architecture (v1.1.1+)
+
+**Shared Design System** (`shared.css`):
+- CSS custom properties for colors, spacing, typography
+- Base styles: body, containers, buttons, forms, tables, modals
+- Utility classes and responsive breakpoints
+- Eliminates ~400+ lines of duplicate CSS across pages
+
+**Page-Specific CSS**:
+- `inventory.css`: Table layouts, stats bar, pagination, mobile card view
+- `management.css`: Tab navigation, overview cards, brand/size/collar management cards, backup tables
+- `insights.css`: KPI cards with glassmorphism, chart containers, filter controls
+
+**Modal Pattern**:
+- HTML: Modals with `.modal` class, initially hidden
+- JavaScript: Use `classList.add('show')` and `classList.remove('show')` (NOT `style.display`)
+- CSS: `.modal.show` uses flexbox to center modal-content
+- No X close buttons - click outside modal to close (event listener on modal background)
+
+## Version History
+
+- **v1.1.2** (2025-10-31): UI improvements - modal centering, inventory table width (95%), fixed Available count, restored management overview cards, white text on insights page, enhanced button styling
+- **v1.1.1** (2025-10-30): CSS refactoring - created shared.css design system, eliminated duplicate styles
+- **v1.1.0** (2025-10-30): Security improvements - added SIGTERM handler for Docker, cleaned up git repository
+- **v1.0.9** and earlier: Initial release and incremental improvements
