@@ -2345,9 +2345,9 @@ app.use((err, req, res, next) => {
 // SERVER STARTUP
 // ================================
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-    console.log('\nReceived SIGINT. Graceful shutdown...');
+// Graceful shutdown handler for both SIGINT (Ctrl+C) and SIGTERM (Docker stop)
+const gracefulShutdown = (signal) => {
+    console.log(`\nReceived ${signal}. Graceful shutdown...`);
     db.close((err) => {
         if (err) {
             console.error('Error closing database:', err.message);
@@ -2356,7 +2356,10 @@ process.on('SIGINT', () => {
         }
         process.exit(0);
     });
-});
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Start server
 app.listen(PORT, () => {
