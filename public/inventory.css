@@ -5,6 +5,12 @@
    Common styles are in shared.css
    ============================================ */
 
+/* Container Override - Make inventory page wider for table */
+.container {
+    max-width: 95%;
+    width: 100%;
+}
+
 /* Header Layout */
 .header {
     display: flex;
@@ -231,6 +237,19 @@ td {
 }
 
 /* Modal Overrides for Item Details */
+.modal {
+    overflow: hidden;
+}
+
+.modal-content {
+    overflow: hidden !important;
+}
+
+.modal-body {
+    overflow-y: auto;
+    max-height: calc(85vh - 120px);
+}
+
 .modal-title {
     font-size: 1.5em;
     font-weight: 600;

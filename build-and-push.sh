@@ -8,7 +8,7 @@ set -e
 # Configuration
 IMAGE_NAME="vinted-inventory"
 DOCKER_USER="jakebroom"  # Replace with your Docker Hub username
-VERSION="1.1.1"
+VERSION="1.1.2"
 
 echo "🚀 Building Vinted Inventory System Docker Image..."
 

@@ -135,7 +135,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="modal-title" id="modalTitle">Item Details</div>
-                    <button class="close" onclick="tableApp.closeModal()">&times;</button>
                 </div>
                 <div class="modal-body" id="modalBody">
                     <!-- Item details will be inserted here -->
@@ -148,7 +147,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="modal-title">Add New Item</div>
-                    <button class="close" onclick="tableApp.closeAddItemModal()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="addItemForm">
@@ -247,7 +245,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="modal-title">Edit Item</div>
-                    <button class="close" onclick="tableApp.closeEditItemModal()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="editItemForm">
@@ -347,7 +344,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="modal-title">Add New Brand</div>
-                    <button class="close" onclick="tableApp.closeAddBrandModal()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="addBrandForm">
@@ -369,7 +365,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="modal-title">Add New Collar Size</div>
-                    <button class="close" onclick="tableApp.closeAddCollarSizeModal()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="addCollarSizeForm">
@@ -392,7 +387,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">Add New Size</div>
-                <button class="close" onclick="tableApp.closeAddSizeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="addSizeForm">
@@ -414,7 +408,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">Export Data</div>
-                <button class="close" onclick="tableApp.closeExportModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <h4>Choose Export Format</h4>
@@ -432,7 +425,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">Import Data</div>
-                <button class="close" onclick="tableApp.closeImportModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="import-section">
@@ -458,7 +450,6 @@
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <div class="modal-title">Backup Management</div>
-                <button class="close" onclick="tableApp.closeBackupModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -706,12 +697,12 @@
             }
 
             showAddBrandModal() {
-                document.getElementById('addBrandModal').style.display = 'block';
+                document.getElementById('addBrandModal').classList.add('show');
                 document.getElementById('newBrandName').focus();
             }
 
             closeAddBrandModal() {
-                document.getElementById('addBrandModal').style.display = 'none';
+                document.getElementById('addBrandModal').classList.remove('show');
                 document.getElementById('addBrandForm').reset();
             }
 
@@ -797,12 +788,12 @@
             }
 
             showAddCollarSizeModal() {
-                document.getElementById('addCollarSizeModal').style.display = 'block';
+                document.getElementById('addCollarSizeModal').classList.add('show');
                 document.getElementById('newCollarSizeName').focus();
             }
 
             closeAddCollarSizeModal() {
-                document.getElementById('addCollarSizeModal').style.display = 'none';
+                document.getElementById('addCollarSizeModal').classList.remove('show');
                 document.getElementById('addCollarSizeForm').reset();
             }
 
@@ -889,12 +880,12 @@
             }
 
             showAddSizeModal() {
-                document.getElementById('addSizeModal').style.display = 'block';
+                document.getElementById('addSizeModal').classList.add('show');
                 document.getElementById('newSizeName').focus();
             }
 
             closeAddSizeModal() {
-                document.getElementById('addSizeModal').style.display = 'none';
+                document.getElementById('addSizeModal').classList.remove('show');
                 document.getElementById('addSizeForm').reset();
             }
 
@@ -980,7 +971,7 @@
                 try {
                     const stats = await this.apiCall('/stats');
                     document.getElementById('totalCount').textContent = stats.totalItems;
-                    document.getElementById('availableCount').textContent = stats.availableItems;
+                    document.getElementById('availableCount').textContent = stats.activeItems;
                     document.getElementById('soldCount').textContent = stats.soldItems;
                 } catch (error) {
                     console.error('Failed to load stats:', error);
@@ -1190,7 +1181,7 @@
                 try {
                     const item = await this.apiCall(`/items/${itemId}`);
                     this.renderItemModal(item);
-                    document.getElementById('itemModal').style.display = 'block';
+                    document.getElementById('itemModal').classList.add('show');
                 } catch (error) {
                     console.error('Failed to load item details:', error);
                 }
@@ -1447,15 +1438,15 @@
             }
 
             closeModal() {
-                document.getElementById('itemModal').style.display = 'none';
+                document.getElementById('itemModal').classList.remove('show');
             }
 
             showAddItemModal() {
-                document.getElementById('addItemModal').style.display = 'block';
+                document.getElementById('addItemModal').classList.add('show');
             }
 
             closeAddItemModal() {
-                document.getElementById('addItemModal').style.display = 'none';
+                document.getElementById('addItemModal').classList.remove('show');
                 document.getElementById('addItemForm').reset();
                 // Reset platform to default
                 document.getElementById('itemPlatform').value = 'Vinted';
@@ -1484,7 +1475,7 @@
 
                         // Close the item detail modal and show edit modal
                         this.closeModal();
-                        document.getElementById('editItemModal').style.display = 'block';
+                        document.getElementById('editItemModal').classList.add('show');
                     })
                     .catch(error => {
                         console.error('Failed to load item for editing:', error);
@@ -1493,7 +1484,7 @@
             }
 
             closeEditItemModal() {
-                document.getElementById('editItemModal').style.display = 'none';
+                document.getElementById('editItemModal').classList.remove('show');
                 document.getElementById('editItemForm').reset();
                 delete document.getElementById('editItemForm').dataset.itemId;
             }
@@ -1618,11 +1609,11 @@
 
             // Export/Import/Backup functions
             showExportMenu() {
-                document.getElementById('exportModal').style.display = 'block';
+                document.getElementById('exportModal').classList.add('show');
             }
 
             closeExportModal() {
-                document.getElementById('exportModal').style.display = 'none';
+                document.getElementById('exportModal').classList.remove('show');
             }
 
             async exportData(format) {
@@ -1654,11 +1645,11 @@
             }
 
             showImportModal() {
-                document.getElementById('importModal').style.display = 'block';
+                document.getElementById('importModal').classList.add('show');
             }
 
             closeImportModal() {
-                document.getElementById('importModal').style.display = 'none';
+                document.getElementById('importModal').classList.remove('show');
                 document.getElementById('importFile').value = '';
             }
 
@@ -1702,12 +1693,12 @@
             }
 
             showBackupModal() {
-                document.getElementById('backupModal').style.display = 'block';
+                document.getElementById('backupModal').classList.add('show');
                 this.loadBackups();
             }
 
             closeBackupModal() {
-                document.getElementById('backupModal').style.display = 'none';
+                document.getElementById('backupModal').classList.remove('show');
             }
 
             async loadBackups() {
