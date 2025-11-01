@@ -419,7 +419,7 @@
 .collar-size-card {
     background: white;
     padding: 20px;
-    border-radius: 12px;
+    border-radius: 16px;
     border: 2px solid #e9ecef;
     display: flex;
     flex-direction: column;

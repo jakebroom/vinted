@@ -51,10 +51,12 @@
     width: 300px;
     background: rgba(255,255,255,0.1);
     color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .search-input::placeholder {
     color: rgba(255,255,255,0.7);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .filter-select {
@@ -64,6 +66,7 @@
     background: rgba(255,255,255,0.1);
     color: white;
     font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .filter-select option {
@@ -85,7 +88,7 @@
 /* Table Specific Styles */
 .table-container {
     background: white;
-    border-radius: 15px;
+    border-radius: 16px;
     box-shadow: 0 15px 35px rgba(0,0,0,0.1);
     overflow: hidden;
     margin-bottom: 30px;
@@ -497,7 +500,7 @@ td {
 }
 
 /* Hide certain columns on small screens */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
     .hide-mobile {
         display: none;
     }
