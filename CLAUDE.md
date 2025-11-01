@@ -84,13 +84,14 @@ Key patterns:
 - `print-label.html`, `print-all-labels.html`, `print-label-simple.html`: QR code label printing
 - All use vanilla JavaScript (no frameworks), fetch API for backend calls
 
-**Design System** (v1.1.2):
+**Design System** (v1.1.3):
 - Purple gradient theme (#667eea → #764ba2) with glassmorphism effects
-- Shared CSS architecture: `shared.css` contains base styles, page-specific CSS for customizations
-- Modal system: CSS class-based (`.show`) with flexbox centering, click-outside-to-close
-- Button variants: Purple gradient primary, teal toggle, red danger/delete with shadows and hover lifts
+- Shared CSS architecture: `shared.css` contains base styles and all button variants (~150 lines), page-specific CSS for customizations only
+- Modal system: CSS class-based (`.show`) with flexbox centering, click-outside-to-close, no X close buttons
+- Button variants: All consolidated in shared.css - `.btn` (purple gradient), `.btn-glass` (transparent for gradients), `.btn-info`, `.btn-warning`, `.btn-small`, `.btn-edit`, `.btn-toggle`, `.btn-delete`, `.btn-danger`
 - Responsive design: Mobile card view for inventory (<768px), desktop table view (≥768px)
 - Accessibility: Focus states, 44px touch targets, WCAG 2.1 AA contrast ratios
+- CSS Consolidation (v1.1.3): Removed ~120 lines of duplicate button CSS from inventory.css and management.css
 
 ### Key Technical Patterns
 
