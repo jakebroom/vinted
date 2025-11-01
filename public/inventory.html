@@ -13,9 +13,9 @@
         <div class="header">
             <h1>📊 NewStart Retail Inventory System</h1>
             <div class="nav-buttons">
-                <button class="btn btn-secondary" onclick="tableApp.showAddItemModal()">➕ Add Item</button>
-                <a href="/manage" class="btn btn-secondary">⚙️ Management</a>
-                <a href="/insights" class="btn btn-secondary">📈 Insights</a>
+                <button class="btn-glass" onclick="tableApp.showAddItemModal()">➕ Add Item</button>
+                <a href="/manage" class="btn-glass">⚙️ Management</a>
+                <a href="/insights" class="btn-glass">📈 Insights</a>
             </div>
         </div>
 
@@ -331,7 +331,7 @@
                             <textarea id="editItemDescription" name="description" placeholder="Additional details about the item..." rows="3"></textarea>
                         </div>
                         <div style="text-align: center; margin-top: 20px;">
-                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeEditItemModal()">Cancel</button>
+                            <button type="button" class="btn" onclick="tableApp.closeEditItemModal()">Cancel</button>
                             <button type="submit" class="btn" id="editItemButton">Update Item</button>
                         </div>
                     </form>
@@ -353,7 +353,7 @@
                         </div>
                         <div style="text-align: center; margin-top: 20px;">
                             <button type="submit" class="btn">Add Brand</button>
-                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddBrandModal()">Cancel</button>
+                            <button type="button" class="btn" onclick="tableApp.closeAddBrandModal()">Cancel</button>
                         </div>
                     </form>
                 </div>
@@ -374,7 +374,7 @@
                         </div>
                         <div style="text-align: center; margin-top: 20px;">
                             <button type="submit" class="btn">Add Collar Size</button>
-                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddCollarSizeModal()">Cancel</button>
+                            <button type="button" class="btn" onclick="tableApp.closeAddCollarSizeModal()">Cancel</button>
                         </div>
                     </form>
                 </div>
@@ -396,7 +396,7 @@
                     </div>
                     <div style="text-align: center; margin-top: 20px;">
                         <button type="submit" class="btn">Add Size</button>
-                        <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddSizeModal()">Cancel</button>
+                        <button type="button" class="btn" onclick="tableApp.closeAddSizeModal()">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -434,7 +434,7 @@
                     </div>
                     <div style="text-align: center; margin-top: 20px;">
                         <button class="btn" onclick="tableApp.handleImportFile()">📥 Import Data</button>
-                        <button class="btn btn-secondary" onclick="tableApp.closeImportModal()">Cancel</button>
+                        <button class="btn" onclick="tableApp.closeImportModal()">Cancel</button>
                     </div>
                     <p style="color: #666; font-size: 13px; margin-top: 15px;">
                         Supported formats: CSV, JSON<br>

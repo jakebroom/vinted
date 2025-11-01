@@ -21,25 +21,7 @@
     flex-wrap: wrap;
 }
 
-/* Glassmorphism Button Variant */
-.btn {
-    background: rgba(255,255,255,0.15);
-    border: 2px solid rgba(255,255,255,0.25);
-    color: #fff;
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-block;
-    cursor: pointer;
-    transition: transform .2s ease, background .2s ease, border-color .2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    background: rgba(255,255,255,0.22);
-    border-color: rgba(255,255,255,0.45);
-}
+/* Note: Using .btn-glass from shared.css for glassmorphism buttons on gradient backgrounds */
 
 /* KPI Grid */
 .kpi-grid {

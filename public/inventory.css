@@ -27,29 +27,7 @@
     flex-wrap: wrap;
 }
 
-/* Glassmorphism Button Variants */
-.btn-secondary {
-    background: rgba(255,255,255,0.2);
-    border: 2px solid rgba(255,255,255,0.3);
-}
-
-.btn-secondary:hover {
-    background: rgba(255,255,255,0.3);
-    border-color: rgba(255,255,255,0.5);
-}
-
-/* Gradient Button Variants */
-.btn-success {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-}
-
-.btn-warning {
-    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-}
-
-.btn-info {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-}
+/* Note: Button variants (.btn-glass, .btn-info, .btn-warning, etc.) now in shared.css */
 
 /* Controls Section */
 .controls {
