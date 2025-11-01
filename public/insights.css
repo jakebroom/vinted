@@ -36,11 +36,12 @@
     border: 1px solid rgba(255,255,255,0.2);
     padding: 24px;
     border-radius: 20px;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: var(--blur-heavy);
+    -webkit-backdrop-filter: var(--blur-heavy);
     color: white;
     box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
+    will-change: transform; /* Performance: optimize for hover animations */
 }
 
 .kpi:hover {
@@ -94,6 +95,7 @@
     box-shadow: 0 8px 24px rgba(0,0,0,.12);
     border: none;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform; /* Performance: optimize for hover animations */
 }
 
 .card:hover {
@@ -204,8 +206,8 @@ canvas {
     gap: 16px;
     align-items: center;
     flex-wrap: wrap;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: var(--blur-heavy);
+    -webkit-backdrop-filter: var(--blur-heavy);
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 

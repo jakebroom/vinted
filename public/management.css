@@ -163,6 +163,7 @@
     text-decoration: none;
     color: inherit;
     display: block;
+    will-change: transform; /* Performance: optimize for hover animations */
 }
 
 .quick-action-card:hover {
@@ -426,6 +427,7 @@
     gap: 16px;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    will-change: transform; /* Performance: optimize for hover animations */
 }
 
 .brand-card:hover,

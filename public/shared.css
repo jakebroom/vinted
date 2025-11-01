@@ -104,6 +104,12 @@
     --breakpoint-md: 768px;
     --breakpoint-lg: 1024px;
     --breakpoint-xl: 1280px;
+
+    /* Performance Optimization */
+    /* Consolidate backdrop-filter values to reduce recalculation */
+    --blur-light: blur(4px);
+    --blur-medium: blur(10px);
+    --blur-heavy: blur(12px);
 }
 
 /* ============================================
@@ -175,6 +181,7 @@ h3 {
     font-family: var(--font-family);
     text-align: center;
     min-height: 44px; /* Touch target size */
+    will-change: transform; /* Performance: hint browser to optimize for transforms */
 }
 
 .btn:hover {
@@ -246,6 +253,19 @@ h3 {
     background: rgba(255,255,255,0.25);
     border-color: rgba(255,255,255,0.4);
     transform: translateY(-2px);
+}
+
+/* Performance: All button variants optimize for transform animations */
+.btn-glass,
+.btn-secondary,
+.btn-info,
+.btn-warning,
+.btn-small,
+.btn-edit,
+.btn-toggle,
+.btn-delete,
+.btn-danger {
+    will-change: transform;
 }
 
 /* Gradient Button Variants with Shadows */
@@ -571,6 +591,7 @@ select option {
     padding: var(--space-md);
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-base);
+    will-change: transform; /* Performance: optimize for hover animations */
 }
 
 .card:hover {

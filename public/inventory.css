@@ -39,8 +39,8 @@
     gap: 20px;
     align-items: center;
     flex-wrap: wrap;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: var(--blur-medium);
+    -webkit-backdrop-filter: var(--blur-medium);
 }
 
 .search-input {
@@ -81,8 +81,8 @@
     margin-bottom: 20px;
     color: white;
     text-align: center;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: var(--blur-medium);
+    -webkit-backdrop-filter: var(--blur-medium);
 }
 
 /* Table Specific Styles */
@@ -401,8 +401,8 @@ td {
     gap: 15px;
     padding: 20px;
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: var(--blur-medium);
+    -webkit-backdrop-filter: var(--blur-medium);
     border-radius: 0 0 10px 10px;
     align-items: center;
 }
