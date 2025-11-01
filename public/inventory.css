@@ -400,7 +400,7 @@ td {
     flex-direction: column;
     gap: 15px;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
     backdrop-filter: var(--blur-medium);
     -webkit-backdrop-filter: var(--blur-medium);
     border-radius: 0 0 10px 10px;
@@ -411,6 +411,7 @@ td {
     color: white;
     font-size: 14px;
     font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .pagination-buttons {
