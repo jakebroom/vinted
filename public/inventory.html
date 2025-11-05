@@ -468,11 +468,11 @@
 
     <!-- Mark as Sold Modal -->
     <div id="markSoldModal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 400px; width: 400px;">
             <div class="modal-header">
                 <div class="modal-title">Mark as Sold</div>
             </div>
-            <div class="modal-body" style="padding: 20px;">
+            <div class="modal-body" style="padding: 24px 24px 24px 24px;">
                 <form id="markSoldForm">
                     <div class="form-group" style="margin-bottom: 20px;">
                         <label for="soldForPrice">Sold For Price (£) *</label>
@@ -1379,8 +1379,11 @@
 
             showMarkSoldModal(itemId) {
                 this.currentItemId = itemId;
+                const modal = document.getElementById('markSoldModal');
                 document.getElementById('soldForPrice').value = '';
-                document.getElementById('markSoldModal').style.display = 'flex';
+                modal.style.display = 'flex';
+                modal.style.alignItems = 'center';
+                modal.style.justifyContent = 'center';
                 setTimeout(() => document.getElementById('soldForPrice').focus(), 100);
             }
 
