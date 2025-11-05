@@ -466,6 +466,28 @@
         </div>
     </div>
 
+    <!-- Mark as Sold Modal -->
+    <div id="markSoldModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-title">Mark as Sold</div>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: #666;">Enter the price this item sold for:</p>
+                <form id="markSoldForm">
+                    <div class="form-group">
+                        <label for="soldForPrice">Sold For Price (£) *</label>
+                        <input type="number" id="soldForPrice" name="sold_for_price" step="0.01" min="0" required placeholder="0.00" autofocus>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="submit" class="btn">✓ Mark as Sold</button>
+                        <button type="button" class="btn" onclick="tableApp.closeMarkSoldModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         class TableApp {
             constructor() {
@@ -657,6 +679,18 @@
                 // Edit modal - collar size button
                 document.getElementById('editAddNewCollarSizeBtn').addEventListener('click', () => {
                     this.showAddCollarSizeModal();
+                });
+
+                // Mark as sold modal events
+                document.getElementById('markSoldModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'markSoldModal') {
+                        this.closeMarkSoldModal();
+                    }
+                });
+
+                document.getElementById('markSoldForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleMarkAsSold();
                 });
             }
 
@@ -1308,11 +1342,11 @@
 
                     <div class="modal-actions">
                         ${!item.is_sold ? `
-                            <button class="btn btn-small btn-success" onclick="tableApp.markAsSold(${item.id}, true)">
+                            <button class="btn btn-small btn-success" onclick="tableApp.showMarkSoldModal(${item.id})">
                                 Mark as Sold
                             </button>
                         ` : `
-                            <button class="btn btn-small btn-warning" onclick="tableApp.markAsSold(${item.id}, false)">
+                            <button class="btn btn-small btn-warning" onclick="tableApp.markAsAvailable(${item.id})">
                                 Mark as Available
                             </button>
                         `}
@@ -1344,18 +1378,61 @@
                 }
             }
 
-            async markAsSold(itemId, isSold) {
+            showMarkSoldModal(itemId) {
+                this.currentItemId = itemId;
+                document.getElementById('soldForPrice').value = '';
+                document.getElementById('markSoldModal').style.display = 'flex';
+                setTimeout(() => document.getElementById('soldForPrice').focus(), 100);
+            }
+
+            closeMarkSoldModal() {
+                document.getElementById('markSoldModal').style.display = 'none';
+                this.currentItemId = null;
+            }
+
+            async handleMarkAsSold() {
+                const soldForPrice = document.getElementById('soldForPrice').value;
+
+                if (!soldForPrice || parseFloat(soldForPrice) < 0) {
+                    alert('Please enter a valid price');
+                    return;
+                }
+
                 try {
-                    await this.apiCall(`/items/${itemId}/sold`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ is_sold: isSold })
+                    await this.apiCall(`/items/${this.currentItemId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            is_sold: true,
+                            sold_for_price: parseFloat(soldForPrice),
+                            sold_date: new Date().toLocaleDateString('en-GB')
+                        })
                     });
-                    
+
+                    this.closeMarkSoldModal();
                     this.closeModal();
                     await this.loadItems();
                     await this.loadStats();
                 } catch (error) {
-                    console.error('Failed to update item status:', error);
+                    console.error('Failed to mark item as sold:', error);
+                    alert('Failed to mark item as sold');
+                }
+            }
+
+            async markAsAvailable(itemId) {
+                try {
+                    await this.apiCall(`/items/${itemId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            is_sold: false,
+                            sold_date: null
+                        })
+                    });
+
+                    this.closeModal();
+                    await this.loadItems();
+                    await this.loadStats();
+                } catch (error) {
+                    console.error('Failed to mark item as available:', error);
                 }
             }
 

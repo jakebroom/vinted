@@ -408,7 +408,7 @@ app.put('/api/items/:id', (req, res) => {
 
     const allowedFields = [
         'name', 'color', 'size', 'brand', 'price', 'condition_item', 'description',
-        'bought_price', 'sold_for_price', 'location', 'season', 'platform', 'is_sold', 'collar_size', 'item_number'
+        'bought_price', 'sold_for_price', 'location', 'season', 'platform', 'is_sold', 'sold_date', 'collar_size', 'item_number'
     ];
 
     const fields = [];
