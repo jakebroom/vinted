@@ -33,7 +33,7 @@
             const response = await fetch('/api/items/' + itemId);
             const item = await response.json();
 
-            const price = item.selling_price || item.price;
+            const price = item.sold_for_price || item.price;
             const priceText = price ? '£' + parseFloat(price).toFixed(2) : '';
 
             document.getElementById('content').innerHTML = `

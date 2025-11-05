@@ -75,8 +75,8 @@
                             <th onclick="tableApp.sortTable('bought_price')">
                                 Bought For <span class="sort-indicator">↕️</span>
                             </th>
-                            <th onclick="tableApp.sortTable('selling_price')">
-                                Selling Price <span class="sort-indicator">↕️</span>
+                            <th onclick="tableApp.sortTable('sold_for_price')">
+                                Sold For Price <span class="sort-indicator">↕️</span>
                             </th>
                             <th>
                                 Profit Margin
@@ -198,8 +198,8 @@
                                 <input type="number" id="itemBoughtPrice" name="bought_price" step="0.01" min="0">
                             </div>
                             <div class="form-group">
-                                <label for="itemSellingPrice">Selling Price (£)</label>
-                                <input type="number" id="itemSellingPrice" name="selling_price" step="0.01" min="0">
+                                <label for="itemSoldForPrice">Sold For Price (£)</label>
+                                <input type="number" id="itemSoldForPrice" name="sold_for_price" step="0.01" min="0">
                             </div>
                             <div class="form-group">
                                 <label for="itemCondition">Condition</label>
@@ -296,8 +296,8 @@
                                 <input type="number" id="editItemBoughtPrice" name="bought_price" step="0.01" min="0">
                             </div>
                             <div class="form-group">
-                                <label for="editItemSellingPrice">Selling Price (£)</label>
-                                <input type="number" id="editItemSellingPrice" name="selling_price" step="0.01" min="0">
+                                <label for="editItemSoldForPrice">Sold For Price (£)</label>
+                                <input type="number" id="editItemSoldForPrice" name="sold_for_price" step="0.01" min="0">
                             </div>
                             <div class="form-group">
                                 <label for="editItemCondition">Condition</label>
@@ -1008,7 +1008,7 @@
                     let aVal = a[this.sortColumn] ?? '';
                     let bVal = b[this.sortColumn] ?? '';
 
-                    if (['bought_price','selling_price','price','id'].includes(this.sortColumn)) {
+                    if (['bought_price','sold_for_price','price','id'].includes(this.sortColumn)) {
                         aVal = parseFloat(aVal) || 0;
                         bVal = parseFloat(bVal) || 0;
                     } else if (this.sortColumn === 'is_sold') {
@@ -1051,7 +1051,7 @@
 
                 tbody.innerHTML = pageItems.map((item, index) => {
                     const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : '-';
-                    const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
+                    const sellingRaw = (item.sold_for_price != null ? item.sold_for_price : item.price);
                     const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : '-';
 
                     const profitMargin = this.calculateProfitMargin(item.bought_price, sellingRaw);
@@ -1104,7 +1104,7 @@
 
                 container.innerHTML = pageItems.map(item => {
                     const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : '-';
-                    const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
+                    const sellingRaw = (item.sold_for_price != null ? item.sold_for_price : item.price);
                     const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : '-';
                     const profitMargin = this.calculateProfitMargin(item.bought_price, sellingRaw);
 
@@ -1194,7 +1194,7 @@
                 modalTitle.textContent = `${item.name} (#${String(item.id).padStart(3, '0')})`;
 
                 const bought = item.bought_price != null ? `£${parseFloat(item.bought_price).toFixed(2)}` : 'Not set';
-                const sellingRaw = (item.selling_price != null ? item.selling_price : item.price);
+                const sellingRaw = (item.sold_for_price != null ? item.sold_for_price : item.price);
                 const selling = sellingRaw != null ? `£${parseFloat(sellingRaw).toFixed(2)}` : 'Not set';
                 
                 let profitInfo = '';
@@ -1264,7 +1264,7 @@
                                 <span class="detail-value" style="color: #e74c3c;">${bought}</span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">Selling Price:</span>
+                                <span class="detail-label">Sold For Price:</span>
                                 <span class="detail-value" style="color: #2ecc71;">${selling}</span>
                             </div>
                             ${profitInfo}
@@ -1392,11 +1392,11 @@
             }
 
             exportToCSV() {
-                const headers = ['ID', 'Name', 'Color', 'Size', 'Collar Size', 'Brand', 'Bought For', 'Selling Price', 'Profit Margin', 'Condition', 'Season', 'Platform', 'Status', 'Date Added', 'Sold Date', 'Description'];
+                const headers = ['ID', 'Name', 'Color', 'Size', 'Collar Size', 'Brand', 'Bought For', 'Sold For Price', 'Profit Margin', 'Condition', 'Season', 'Platform', 'Status', 'Date Added', 'Sold Date', 'Description'];
                 const csvContent = [
                     headers.join(','),
                     ...this.filteredItems.map(item => {
-                        const selling = (item.selling_price ?? item.price) ?? '';
+                        const selling = (item.sold_for_price ?? item.price) ?? '';
                         const bought = item.bought_price ?? '';
                         const profitMargin = this.calculateProfitMargin(item.bought_price, selling);
 
@@ -1464,7 +1464,7 @@
                         document.getElementById('editItemCollarSize').value = item.collar_size || '';
                         document.getElementById('editItemBrand').value = item.brand || '';
                         document.getElementById('editItemBoughtPrice').value = item.bought_price || '';
-                        document.getElementById('editItemSellingPrice').value = item.selling_price || item.price || '';
+                        document.getElementById('editItemSoldForPrice').value = item.sold_for_price || item.price || '';
                         document.getElementById('editItemCondition').value = item.condition_item || '';
                         document.getElementById('editItemSeason').value = item.season || '';
                         document.getElementById('editItemPlatform').value = item.platform || 'Vinted';

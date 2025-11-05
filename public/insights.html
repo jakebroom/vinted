@@ -209,7 +209,7 @@
 
         // Revenue/COGS/Profit from SOLD items in filtered set
         const soldOnly = this.filtered.filter(i => !!i.is_sold);
-        const getSelling = (i) => (i.selling_price != null ? i.selling_price : i.price) || 0;
+        const getSelling = (i) => (i.sold_for_price != null ? i.sold_for_price : i.price) || 0;
         const revenue = soldOnly.reduce((a,i) => a + (parseFloat(getSelling(i)) || 0), 0);
         const cogs = soldOnly.reduce((a,i) => a + (parseFloat(i.bought_price) || 0), 0);
         const profit = revenue - cogs;
@@ -246,7 +246,7 @@
       groupByMonth(data) {
         // key: yyyy-mm
         const map = new Map();
-        const selling = (i) => (i.selling_price != null ? i.selling_price : i.price) || 0;
+        const selling = (i) => (i.sold_for_price != null ? i.sold_for_price : i.price) || 0;
 
         for (const i of data) {
           const d = this.parseSmartDate(i.is_sold ? i.sold_date : i.date_added);
@@ -274,7 +274,7 @@
           const b = (i.brand || 'Unbranded').trim();
           if (!map.has(b)) map.set(b, { brand: b, revenue:0, units:0, avg:0 });
           const row = map.get(b);
-          const selling = (i.selling_price != null ? i.selling_price : i.price) || 0;
+          const selling = (i.sold_for_price != null ? i.sold_for_price : i.price) || 0;
           row.revenue += Number(selling) || 0;
           row.units += 1;
         }
@@ -371,7 +371,7 @@
         const lines = [];
         lines.push(['Metric','Value'].join(','));
         // KPIs
-        const selling = (i) => (i.selling_price != null ? i.selling_price : i.price) || 0;
+        const selling = (i) => (i.sold_for_price != null ? i.sold_for_price : i.price) || 0;
         const revenue = soldOnly.reduce((a,i)=>a+(+selling(i)||0),0);
         const cogs = soldOnly.reduce((a,i)=>a+(+i.bought_price||0),0);
         const profit = revenue - cogs;

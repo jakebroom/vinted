@@ -78,7 +78,7 @@ function initializeDatabase() {
             is_sold BOOLEAN DEFAULT 0,
             sold_date TEXT,
             bought_price DECIMAL(10,2),
-            selling_price DECIMAL(10,2),
+            sold_for_price DECIMAL(10,2),
             location TEXT,
             season TEXT,
             platform TEXT DEFAULT 'Vinted',
@@ -252,7 +252,7 @@ function addMissingColumns() {
         { column: 'is_sold', type: 'BOOLEAN DEFAULT 0' },
         { column: 'sold_date', type: 'TEXT' },
         { column: 'bought_price', type: 'DECIMAL(10,2)' },
-        { column: 'selling_price', type: 'DECIMAL(10,2)' },
+        { column: 'sold_for_price', type: 'DECIMAL(10,2)' },
         { column: 'location', type: 'TEXT' },
         { column: 'season', type: 'TEXT' },
         { column: 'platform', type: 'TEXT DEFAULT "Vinted"' },
@@ -274,6 +274,28 @@ function addMissingColumns() {
     db.run('ALTER TABLE brands ADD COLUMN is_active BOOLEAN DEFAULT 1', (err) => {
         if (err && !err.message.includes('duplicate column name')) {
             console.error('Error adding is_active column to brands:', err.message);
+        }
+    });
+
+    // Migrate selling_price to sold_for_price for existing databases
+    db.all("PRAGMA table_info(items)", [], (err, columns) => {
+        if (err) {
+            console.error('Error checking table info:', err.message);
+            return;
+        }
+
+        const hasSellingPrice = columns.some(col => col.name === 'selling_price');
+        const hasSoldForPrice = columns.some(col => col.name === 'sold_for_price');
+
+        if (hasSellingPrice && hasSoldForPrice) {
+            // Both columns exist, copy data from old to new
+            db.run('UPDATE items SET sold_for_price = selling_price WHERE sold_for_price IS NULL AND selling_price IS NOT NULL', (err) => {
+                if (err) {
+                    console.error('Error migrating selling_price data:', err.message);
+                } else {
+                    console.log('Successfully migrated selling_price to sold_for_price');
+                }
+            });
         }
     });
 }
@@ -337,7 +359,7 @@ app.get('/api/items/:id', (req, res) => {
 app.post('/api/items', (req, res) => {
     const {
         name, color, size, brand, price, condition_item, description,
-        bought_price, selling_price, location, season, platform, collar_size, item_number
+        bought_price, sold_for_price, location, season, platform, collar_size, item_number
     } = req.body;
 
     if (!name || !color || !size) {
@@ -349,13 +371,13 @@ app.post('/api/items', (req, res) => {
     const sql = `
         INSERT INTO items (
             name, color, size, brand, price, condition_item, description, date_added,
-            bought_price, selling_price, location, season, platform, collar_size, item_number
+            bought_price, sold_for_price, location, season, platform, collar_size, item_number
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
         name, color, size, brand || null, price || null, condition_item || null,
-        description || null, dateAdded, bought_price || null, selling_price || null,
+        description || null, dateAdded, bought_price || null, sold_for_price || null,
         location || null, season || null, platform || 'Vinted', collar_size || null, item_number || null
     ];
 
@@ -386,7 +408,7 @@ app.put('/api/items/:id', (req, res) => {
 
     const allowedFields = [
         'name', 'color', 'size', 'brand', 'price', 'condition_item', 'description',
-        'bought_price', 'selling_price', 'location', 'season', 'platform', 'is_sold', 'collar_size', 'item_number'
+        'bought_price', 'sold_for_price', 'location', 'season', 'platform', 'is_sold', 'collar_size', 'item_number'
     ];
 
     const fields = [];
@@ -1063,7 +1085,7 @@ app.get('/api/stats', (req, res) => {
             stats.activeItems = stats.totalItems - stats.soldItems;
             
             // Get active listings value (sum of selling prices for unsold items)
-            db.get('SELECT SUM(COALESCE(selling_price, price, 0)) as total FROM items WHERE (is_sold = 0 OR is_sold IS NULL)', [], (err, result) => {
+            db.get('SELECT SUM(COALESCE(sold_for_price, price, 0)) as total FROM items WHERE (is_sold = 0 OR is_sold IS NULL)', [], (err, result) => {
                 if (err) {
                     console.error('Error getting total value:', err.message);
                     return res.status(500).json({ error: 'Failed to get statistics' });
@@ -1073,7 +1095,7 @@ app.get('/api/stats', (req, res) => {
                 // Get profit calculation
                 db.get(`
                     SELECT
-                        SUM(COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)) as profit
+                        SUM(COALESCE(sold_for_price, price, 0) - COALESCE(bought_price, 0)) as profit
                     FROM items
                     WHERE is_sold = 1 AND bought_price IS NOT NULL
                 `, [], (err, result) => {
@@ -1740,7 +1762,7 @@ app.get('/api/export/excel', (req, res) => {
             'Collar Size': item.collar_size || '',
             'Brand': item.brand || '',
             'Bought Price': item.bought_price || '',
-            'Selling Price': item.selling_price || item.price || '',
+            'Sold For Price': item.sold_for_price || item.price || '',
             'Condition': item.condition_item || '',
             'Location': item.location || '',
             'Season': item.season || '',
@@ -1831,7 +1853,7 @@ app.post('/api/import', (req, res) => {
         const stmt = db.prepare(`
             INSERT INTO items (
                 name, color, size, brand, price, condition_item, description, date_added,
-                bought_price, selling_price, location, season, platform, is_sold, sold_date, collar_size
+                bought_price, sold_for_price, location, season, platform, is_sold, sold_date, collar_size
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
@@ -1856,7 +1878,7 @@ app.post('/api/import', (req, res) => {
                 item.description || item.Description || null,
                 dateAdded,
                 item.bought_price || item['Bought Price'] || null,
-                item.selling_price || item['Selling Price'] || null,
+                item.sold_for_price || item['Sold For Price'] || null,
                 item.location || item.Location || null,
                 item.season || item.Season || null,
                 item.platform || item.Platform || 'Vinted',
@@ -1900,11 +1922,11 @@ app.get('/api/export/csv', (req, res) => {
             console.error('Error exporting CSV:', err.message);
             res.status(500).json({ error: 'Failed to export CSV' });
         } else {
-            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Selling Price,Condition,Location,Season,Platform,Status,Date Added,Sold Date,Description\n';
+            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Sold For Price,Condition,Location,Season,Platform,Status,Date Added,Sold Date,Description\n';
             const csvRows = rows.map(item => {
                 const status = item.is_sold ? 'SOLD' : 'AVAILABLE';
                 const boughtPrice = item.bought_price || '';
-                const sellingPrice = item.selling_price || item.price || '';
+                const sellingPrice = item.sold_for_price || item.price || '';
                 
                 return [
                     item.id,
@@ -1939,12 +1961,12 @@ app.get('/api/export/sold', (req, res) => {
             console.error('Error exporting sold items:', err.message);
             res.status(500).json({ error: 'Failed to export sold items' });
         } else {
-            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Selling Price,Profit,Condition,Location,Season,Platform,Date Added,Sold Date,Description\n';
+            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Sold For Price,Profit,Condition,Location,Season,Platform,Date Added,Sold Date,Description\n';
             const csvRows = rows.map(item => {
                 const boughtPrice = parseFloat(item.bought_price) || 0;
-                const sellingPrice = parseFloat(item.selling_price || item.price) || 0;
+                const sellingPrice = parseFloat(item.sold_for_price || item.price) || 0;
                 const profit = sellingPrice - boughtPrice;
-                
+
                 return [
                     item.id,
                     `"${(item.name || '').replace(/"/g, '""')}"`,
@@ -1952,7 +1974,7 @@ app.get('/api/export/sold', (req, res) => {
                     `"${(item.size || '').replace(/"/g, '""')}"`,
                     `"${(item.brand || '').replace(/"/g, '""')}"`,
                     item.bought_price || '',
-                    item.selling_price || item.price || '',
+                    item.sold_for_price || item.price || '',
                     profit.toFixed(2),
                     `"${(item.condition_item || '').replace(/"/g, '""')}"`,
                     `"${(item.location || '').replace(/"/g, '""')}"`,
@@ -1978,12 +2000,12 @@ app.get('/api/export/active', (req, res) => {
             console.error('Error exporting active items:', err.message);
             res.status(500).json({ error: 'Failed to export active items' });
         } else {
-            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Selling Price,Expected Profit,Condition,Location,Season,Platform,Date Added,Description\n';
+            const csvHeader = 'ID,Name,Color,Size,Brand,Bought Price,Sold For Price,Expected Profit,Condition,Location,Season,Platform,Date Added,Description\n';
             const csvRows = rows.map(item => {
                 const boughtPrice = parseFloat(item.bought_price) || 0;
-                const sellingPrice = parseFloat(item.selling_price || item.price) || 0;
+                const sellingPrice = parseFloat(item.sold_for_price || item.price) || 0;
                 const expectedProfit = sellingPrice - boughtPrice;
-                
+
                 return [
                     item.id,
                     `"${(item.name || '').replace(/"/g, '""')}"`,
@@ -1991,7 +2013,7 @@ app.get('/api/export/active', (req, res) => {
                     `"${(item.size || '').replace(/"/g, '""')}"`,
                     `"${(item.brand || '').replace(/"/g, '""')}"`,
                     item.bought_price || '',
-                    item.selling_price || item.price || '',
+                    item.sold_for_price || item.price || '',
                     expectedProfit.toFixed(2),
                     `"${(item.condition_item || '').replace(/"/g, '""')}"`,
                     `"${(item.location || '').replace(/"/g, '""')}"`,
@@ -2017,9 +2039,9 @@ app.get('/api/export/brand-report', (req, res) => {
             COUNT(*) as total_items,
             SUM(CASE WHEN is_sold = 1 THEN 1 ELSE 0 END) as sold_items,
             SUM(CASE WHEN (is_sold = 0 OR is_sold IS NULL) THEN 1 ELSE 0 END) as available_items,
-            AVG(COALESCE(selling_price, price, 0)) as avg_selling_price,
+            AVG(COALESCE(sold_for_price, price, 0)) as avg_selling_price,
             AVG(COALESCE(bought_price, 0)) as avg_bought_price,
-            SUM(CASE WHEN is_sold = 1 THEN COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0) ELSE 0 END) as total_profit
+            SUM(CASE WHEN is_sold = 1 THEN COALESCE(sold_for_price, price, 0) - COALESCE(bought_price, 0) ELSE 0 END) as total_profit
         FROM items 
         GROUP BY COALESCE(brand, 'No Brand')
         ORDER BY total_items DESC
@@ -2056,16 +2078,16 @@ app.get('/api/export/profit-report', (req, res) => {
         SELECT
             id, name, brand,
             COALESCE(bought_price, 0) as bought_price,
-            COALESCE(selling_price, price, 0) as selling_price,
-            COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0) as profit,
+            COALESCE(sold_for_price, price, 0) as sold_for_price,
+            COALESCE(sold_for_price, price, 0) - COALESCE(bought_price, 0) as profit,
             CASE
                 WHEN COALESCE(bought_price, 0) > 0
-                THEN ((COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)) / COALESCE(bought_price, 0)) * 100
+                THEN ((COALESCE(sold_for_price, price, 0) - COALESCE(bought_price, 0)) / COALESCE(bought_price, 0)) * 100
                 ELSE 0
             END as profit_margin_percent,
             is_sold, date_added, sold_date
         FROM items
-        WHERE bought_price IS NOT NULL AND (selling_price IS NOT NULL OR price IS NOT NULL)
+        WHERE bought_price IS NOT NULL AND (sold_for_price IS NOT NULL OR price IS NOT NULL)
         ORDER BY profit DESC
     `;
 
@@ -2074,14 +2096,14 @@ app.get('/api/export/profit-report', (req, res) => {
             console.error('Error generating profit report:', err.message);
             res.status(500).json({ error: 'Failed to generate profit report' });
         } else {
-            const csvHeader = 'ID,Name,Brand,Bought Price,Selling Price,Profit,Profit Margin %,Status,Date Added,Sold Date\n';
+            const csvHeader = 'ID,Name,Brand,Bought Price,Sold For Price,Profit,Profit Margin %,Status,Date Added,Sold Date\n';
             const csvRows = rows.map(row => {
                 return [
                     row.id,
                     `"${(row.name || '').replace(/"/g, '""')}"`,
                     `"${(row.brand || '').replace(/"/g, '""')}"`,
                     row.bought_price.toFixed(2),
-                    row.selling_price.toFixed(2),
+                    row.sold_for_price.toFixed(2),
                     row.profit.toFixed(2),
                     row.profit_margin_percent.toFixed(1),
                     row.is_sold ? 'SOLD' : 'AVAILABLE',
@@ -2110,7 +2132,7 @@ app.post('/api/export/labels-pdf', async (req, res) => {
         const placeholders = itemIds.map(() => '?').join(',');
         const sql = `
             SELECT id, item_number, name, brand, color, size, collar_size,
-                   condition_item, COALESCE(selling_price, price, 0) as price
+                   condition_item, COALESCE(sold_for_price, price, 0) as price
             FROM items
             WHERE id IN (${placeholders})
             ORDER BY id DESC

@@ -103,7 +103,7 @@
                 const item = await response.json();
 
                 const itemIdFormatted = '#' + String(item.id).padStart(3, '0');
-                const price = item.selling_price || item.price;
+                const price = item.sold_for_price || item.price;
                 const priceFormatted = price ? '£' + parseFloat(price).toFixed(2) : '';
 
                 // Build label HTML
