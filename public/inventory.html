@@ -468,19 +468,18 @@
 
     <!-- Mark as Sold Modal -->
     <div id="markSoldModal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
                 <div class="modal-title">Mark as Sold</div>
             </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 20px; color: #666;">Enter the price this item sold for:</p>
+            <div class="modal-body" style="padding: 20px;">
                 <form id="markSoldForm">
-                    <div class="form-group">
+                    <div class="form-group" style="margin-bottom: 20px;">
                         <label for="soldForPrice">Sold For Price (£) *</label>
                         <input type="number" id="soldForPrice" name="sold_for_price" step="0.01" min="0" required placeholder="0.00" autofocus>
                     </div>
-                    <div style="text-align: center; margin-top: 20px;">
-                        <button type="submit" class="btn">✓ Mark as Sold</button>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button type="submit" class="btn">✓ Confirm</button>
                         <button type="button" class="btn" onclick="tableApp.closeMarkSoldModal()">Cancel</button>
                     </div>
                 </form>
