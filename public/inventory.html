@@ -1364,10 +1364,7 @@
                 const qrContainer = document.getElementById(`modalQR-${item.id}`);
                 if (qrContainer) {
                     const img = document.createElement('img');
-                    const url = `${window.location.origin}${window.location.pathname}?item=${item.id}&popup=true`;
-                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=333333&margin=10&format=png`;
-                    
-                    img.src = qrUrl;
+                    img.src = `/qr/${item.id}`;
                     img.width = 150;
                     img.height = 150;
                     img.alt = `QR Code for item ${item.id}`;
@@ -1379,16 +1376,13 @@
 
             showMarkSoldModal(itemId) {
                 this.currentItemId = itemId;
-                const modal = document.getElementById('markSoldModal');
                 document.getElementById('soldForPrice').value = '';
-                modal.style.display = 'flex';
-                modal.style.alignItems = 'center';
-                modal.style.justifyContent = 'center';
+                document.getElementById('markSoldModal').classList.add('show');
                 setTimeout(() => document.getElementById('soldForPrice').focus(), 100);
             }
 
             closeMarkSoldModal() {
-                document.getElementById('markSoldModal').style.display = 'none';
+                document.getElementById('markSoldModal').classList.remove('show');
                 this.currentItemId = null;
             }
 

@@ -2350,11 +2350,17 @@ app.get('/print-all-labels', (req, res) => {
 });
 
 // QR Code generation
-app.get('/qr/:id', (req, res) => {
+app.get('/qr/:id', async (req, res) => {
     const { id } = req.params;
-    const url = `${req.protocol}://${req.get('host')}/#item-${id}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=333333&margin=10&format=png`;
-    res.redirect(qrUrl);
+    const url = `${req.protocol}://${req.get('host')}/?item=${id}&popup=true`;
+    try {
+        const png = await QRCode.toBuffer(url, { width: 200, margin: 1 });
+        res.setHeader('Content-Type', 'image/png');
+        res.send(png);
+    } catch (err) {
+        console.error('QR generation error:', err);
+        res.status(500).json({ error: 'Failed to generate QR code' });
+    }
 });
 
 // ================================
