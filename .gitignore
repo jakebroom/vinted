@@ -29,6 +29,9 @@ desktop.ini
 *~
 .claude/
 
+# gstack local artifacts (security reports, session data — keep off git)
+.gstack/
+
 # Logs
 logs/
 *.log

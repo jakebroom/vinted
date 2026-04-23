@@ -41,7 +41,7 @@ if (WASABI_ENABLED && WASABI_ACCESS_KEY_ID && WASABI_SECRET_ACCESS_KEY && WASABI
 }
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: ['http://localhost:3000', 'http://127.0.0.1:3000'] }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
@@ -82,6 +82,7 @@ function initializeDatabase() {
             location TEXT,
             season TEXT,
             platform TEXT DEFAULT 'Vinted',
+            collar_size TEXT,
             item_number TEXT
         );
     `;
@@ -1305,6 +1306,12 @@ if (!fs.existsSync(BACKUP_DIR)) {
     fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
+function safeBackupPath(filename) {
+    const safe = path.basename(filename);
+    if (!safe.endsWith('.db') || safe !== filename) return null;
+    return path.join(BACKUP_DIR, safe);
+}
+
 // Create manual backup
 app.post('/api/backups/create', (req, res) => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1365,14 +1372,14 @@ app.get('/api/backups', (req, res) => {
 
 // Download backup
 app.get('/api/backups/download/:filename', (req, res) => {
-    const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = safeBackupPath(req.params.filename);
+    if (!backupPath) return res.status(400).json({ error: 'Invalid filename' });
 
     if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ error: 'Backup not found' });
     }
 
-    res.download(backupPath, filename, (err) => {
+    res.download(backupPath, req.params.filename, (err) => {
         if (err) {
             console.error('Error downloading backup:', err.message);
             res.status(500).json({ error: 'Failed to download backup' });
@@ -1382,8 +1389,8 @@ app.get('/api/backups/download/:filename', (req, res) => {
 
 // Delete backup
 app.delete('/api/backups/:filename', (req, res) => {
-    const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = safeBackupPath(req.params.filename);
+    if (!backupPath) return res.status(400).json({ error: 'Invalid filename' });
 
     if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ error: 'Backup not found' });
@@ -1402,7 +1409,8 @@ app.delete('/api/backups/:filename', (req, res) => {
 // Restore backup
 app.post('/api/backups/:filename/restore', (req, res) => {
     const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = safeBackupPath(filename);
+    if (!backupPath) return res.status(400).json({ error: 'Invalid filename' });
 
     // Validate backup file exists
     if (!fs.existsSync(backupPath)) {
@@ -1521,7 +1529,8 @@ app.post('/api/backups/:filename/upload-to-wasabi', async (req, res) => {
     }
 
     const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = safeBackupPath(filename);
+    if (!backupPath) return res.status(400).json({ error: 'Invalid filename' });
 
     if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ error: 'Backup not found' });
