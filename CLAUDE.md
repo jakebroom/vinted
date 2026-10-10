@@ -84,14 +84,15 @@ Key patterns:
 - `print-label.html`, `print-all-labels.html`, `print-label-simple.html`: QR code label printing
 - All use vanilla JavaScript (no frameworks), fetch API for backend calls
 
-**Design System** (v1.1.3):
-- Purple gradient theme (#667eea → #764ba2) with glassmorphism effects
-- Shared CSS architecture: `shared.css` contains base styles and all button variants (~150 lines), page-specific CSS for customizations only
-- Modal system: CSS class-based (`.show`) with flexbox centering, click-outside-to-close, no X close buttons
-- Button variants: All consolidated in shared.css - `.btn` (purple gradient), `.btn-glass` (transparent for gradients), `.btn-info`, `.btn-warning`, `.btn-small`, `.btn-edit`, `.btn-toggle`, `.btn-delete`, `.btn-danger`
+**Design System** (v1.2.0):
+- Neutral application shell: light grey canvas (`--color-bg`), white surfaces with 1px borders, single indigo accent (`--color-primary: #4f46e5`). No gradients, glassmorphism, emoji icons or hover-lift animations.
+- Every page shares the same top bar (`.app-header` with `.brand`, `.app-nav`, `.app-actions`) and a `.page-header` title row. Mark the current page's nav link with `.active`.
+- All design tokens live in `:root` in `shared.css`. Page CSS should reference tokens, never hard-coded colours.
+- Button variants in shared.css: `.btn` (primary, solid indigo), `.btn-secondary` (white, bordered), `.btn-ghost`, `.btn-danger` (outlined red), `.btn-danger-solid`, `.btn-success`, `.btn-small` (compact, combine with a variant). Legacy classes `.btn-glass`, `.btn-info`, `.btn-warning`, `.btn-edit`, `.btn-toggle` render as secondary; `.btn-delete` renders as outlined danger.
+- Numeric table columns are right-aligned with tabular numerals (`.price-cell`, `.num`). Status and margin use subtle pills, not saturated colours.
+- Modal system: CSS class-based (`.show`) with flexbox centering, click-outside-to-close, white header with bottom border
 - Responsive design: Mobile card view for inventory (<768px), desktop table view (≥768px)
-- Accessibility: Focus states, 44px touch targets, WCAG 2.1 AA contrast ratios
-- CSS Consolidation (v1.1.3): Removed ~120 lines of duplicate button CSS from inventory.css and management.css
+- Accessibility: Visible focus rings, 36px minimum control height, WCAG 2.1 AA contrast ratios
 
 ### Key Technical Patterns
 
@@ -213,7 +214,7 @@ All reference tables (brands, sizes, collar_sizes) follow the same API pattern:
 **Page-Specific CSS**:
 - `inventory.css`: Table layouts, stats bar, pagination, mobile card view
 - `management.css`: Tab navigation, overview cards, brand/size/collar management cards, backup tables
-- `insights.css`: KPI cards with glassmorphism, chart containers, filter controls
+- `insights.css`: KPI tiles, chart cards, filter bar
 
 **Modal Pattern**:
 - HTML: Modals with `.modal` class, initially hidden
@@ -223,6 +224,8 @@ All reference tables (brands, sizes, collar_sizes) follow the same API pattern:
 
 ## Version History
 
+- **v1.2.0** (2026-10-10): UI redesign - neutral application shell with shared top bar, single indigo accent, no gradients or emoji; profit column in pounds; clickable stat tiles filter the table; Insights filters apply on change; label picker restyled; stale CSS docs removed
+- **v1.1.6** (2026-10-10): Fixed restore leaving a closed DB handle, backup filename path traversal, missing collar_size column on fresh installs, backup ordering by filename timestamp
 - **v1.1.2** (2025-10-31): UI improvements - modal centering, inventory table width (95%), fixed Available count, restored management overview cards, white text on insights page, enhanced button styling
 - **v1.1.1** (2025-10-30): CSS refactoring - created shared.css design system, eliminated duplicate styles
 - **v1.1.0** (2025-10-30): Security improvements - added SIGTERM handler for Docker, cleaned up git repository

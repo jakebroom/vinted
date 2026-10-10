@@ -3,38 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Table View - NewStart Retail Inventory System</title>
+    <title>Inventory · NewStart Retail</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="inventory.css">
 </head>
 <body>
+    <header class="app-header">
+        <div class="app-header-inner">
+            <a href="/" class="brand"><span class="brand-mark">NR</span>NewStart Retail</a>
+            <nav class="app-nav" aria-label="Main">
+                <a href="/" class="app-nav-link active" aria-current="page">Inventory</a>
+                <a href="/manage" class="app-nav-link">Management</a>
+                <a href="/insights" class="app-nav-link">Insights</a>
+            </nav>
+            <div class="app-actions">
+                <button class="btn" onclick="tableApp.showAddItemModal()">Add item</button>
+            </div>
+        </div>
+    </header>
+
     <div class="container">
-        <div class="header">
-            <h1>📊 NewStart Retail Inventory System</h1>
-            <div class="nav-buttons">
-                <button class="btn-glass" onclick="tableApp.showAddItemModal()">➕ Add Item</button>
-                <a href="/manage" class="btn-glass">⚙️ Management</a>
-                <a href="/insights" class="btn-glass">📈 Insights</a>
+        <div class="page-header">
+            <div>
+                <h1>Inventory</h1>
+                <p class="page-subtitle">Every item you have listed, sold or stored.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-secondary" onclick="tableApp.showImportModal()">Import</button>
+                <button class="btn btn-secondary" onclick="tableApp.showExportMenu()">Export</button>
+                <button class="btn btn-secondary" onclick="window.open('/print-all-labels', '_blank')">Print labels</button>
             </div>
         </div>
 
         <!-- Stats -->
-        <div class="stats" id="statsContainer">
-            <strong>Available: <span id="availableCount">0</span> | Sold: <span id="soldCount">0</span> | Total: <span id="totalCount">0</span></strong>
+        <div class="stat-row" id="statsContainer">
+            <div class="stat-tile stat-tile-clickable" data-filter="available" role="button" tabindex="0" title="Show available items only">
+                <div class="stat-tile-label">Available</div>
+                <div class="stat-tile-value" id="availableCount">0</div>
+            </div>
+            <div class="stat-tile stat-tile-clickable" data-filter="sold" role="button" tabindex="0" title="Show sold items only">
+                <div class="stat-tile-label">Sold</div>
+                <div class="stat-tile-value" id="soldCount">0</div>
+            </div>
+            <div class="stat-tile stat-tile-clickable" data-filter="all" role="button" tabindex="0" title="Show all items">
+                <div class="stat-tile-label">Total items</div>
+                <div class="stat-tile-value" id="totalCount">0</div>
+            </div>
         </div>
 
         <!-- Controls -->
         <div class="controls">
-            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search items...">
-            <select id="statusFilter" class="filter-select">
-                <option value="all">All Items</option>
-                <option value="available">Available Only</option>
-                <option value="sold">Sold Only</option>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search name, brand, colour, location…" aria-label="Search items">
+            <select id="statusFilter" class="filter-select" aria-label="Filter by status">
+                <option value="all">All items</option>
+                <option value="available">Available only</option>
+                <option value="sold">Sold only</option>
             </select>
-            <button class="btn btn-small" onclick="window.open('/print-all-labels', '_blank')">📄 Export Labels as PDF</button>
-            <button class="btn btn-small" onclick="tableApp.showExportMenu()">📤 Export</button>
-            <button class="btn btn-small" onclick="tableApp.showImportModal()">📥 Import</button>
         </div>
 
         <!-- Table -->
@@ -51,56 +76,53 @@
                 <table id="inventoryTable">
                     <thead>
                         <tr>
-                            <th onclick="tableApp.sortTable('id')">
-                                ID <span class="sort-indicator">↕️</span>
-                            </th>
                             <th>
                                 Item #
                             </th>
                             <th onclick="tableApp.sortTable('name')">
-                                Name <span class="sort-indicator">↕️</span>
+                                Name <span class="sort-indicator"></span>
                             </th>
                             <th onclick="tableApp.sortTable('color')">
-                                Color <span class="sort-indicator">↕️</span>
+                                Color <span class="sort-indicator"></span>
                             </th>
                             <th onclick="tableApp.sortTable('size')">
-                                Size <span class="sort-indicator">↕️</span>
+                                Size <span class="sort-indicator"></span>
                             </th>
-                            <th onclick="tableApp.sortTable('collar_size')" class="hide-mobile">
-                                Collar Size <span class="sort-indicator">↕️</span>
+                            <th onclick="tableApp.sortTable('collar_size')" class="hide-mobile col-collar">
+                                Collar <span class="sort-indicator"></span>
                             </th>
                             <th onclick="tableApp.sortTable('brand')" class="hide-mobile">
-                                Brand <span class="sort-indicator">↕️</span>
+                                Brand <span class="sort-indicator"></span>
                             </th>
-                            <th onclick="tableApp.sortTable('bought_price')">
-                                Bought For <span class="sort-indicator">↕️</span>
+                            <th class="price-col" onclick="tableApp.sortTable('bought_price')">
+                                Bought <span class="sort-indicator"></span>
                             </th>
-                            <th onclick="tableApp.sortTable('sold_for_price')">
-                                Sold For Price <span class="sort-indicator">↕️</span>
+                            <th class="price-col" onclick="tableApp.sortTable('sold_for_price')">
+                                Sold <span class="sort-indicator"></span>
                             </th>
-                            <th>
-                                Profit Margin
+                            <th class="price-col" onclick="tableApp.sortTable('profit')">
+                                Profit <span class="sort-indicator"></span>
                             </th>
-                            <th onclick="tableApp.sortTable('condition_item')" class="hide-mobile">
-                                Condition <span class="sort-indicator">↕️</span>
+                            <th onclick="tableApp.sortTable('condition_item')" class="hide-mobile col-condition">
+                                Condition <span class="sort-indicator"></span>
                             </th>
-                            <th onclick="tableApp.sortTable('season')" class="hide-mobile">
-                                Season <span class="sort-indicator">↕️</span>
+                            <th onclick="tableApp.sortTable('season')" class="hide-mobile col-season">
+                                Season <span class="sort-indicator"></span>
                             </th>
-                            <th onclick="tableApp.sortTable('platform')" class="hide-mobile">
-                                Platform <span class="sort-indicator">↕️</span>
+                            <th onclick="tableApp.sortTable('platform')" class="hide-mobile col-platform">
+                                Platform <span class="sort-indicator"></span>
                             </th>
                             <th onclick="tableApp.sortTable('is_sold')">
-                                Status <span class="sort-indicator">↕️</span>
+                                Status <span class="sort-indicator"></span>
                             </th>
-                            <th onclick="tableApp.sortTable('date_added')" class="hide-mobile">
-                                Added <span class="sort-indicator">↕️</span>
+                            <th onclick="tableApp.sortTable('date_added')" class="hide-mobile col-added">
+                                Added <span class="sort-indicator"></span>
                             </th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
                         <tr>
-                            <td colspan="15" class="loading">Loading inventory...</td>
+                            <td colspan="14" class="loading">Loading inventory...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -112,11 +134,11 @@
                     Showing <span id="pageStart">0</span> - <span id="pageEnd">0</span> of <span id="totalItems">0</span> items
                 </div>
                 <div class="pagination-buttons">
-                    <button class="btn btn-small" id="firstPageBtn" onclick="tableApp.goToPage(1)">⏮️ First</button>
-                    <button class="btn btn-small" id="prevPageBtn" onclick="tableApp.previousPage()">◀️ Previous</button>
+                    <button class="btn btn-small btn-secondary" id="firstPageBtn" onclick="tableApp.goToPage(1)">First</button>
+                    <button class="btn btn-small btn-secondary" id="prevPageBtn" onclick="tableApp.previousPage()">Previous</button>
                     <span class="page-number">Page <span id="currentPageNum">1</span> of <span id="totalPages">1</span></span>
-                    <button class="btn btn-small" id="nextPageBtn" onclick="tableApp.nextPage()">Next ▶️</button>
-                    <button class="btn btn-small" id="lastPageBtn" onclick="tableApp.goToLastPage()">Last ⏭️</button>
+                    <button class="btn btn-small btn-secondary" id="nextPageBtn" onclick="tableApp.nextPage()">Next </button>
+                    <button class="btn btn-small btn-secondary" id="lastPageBtn" onclick="tableApp.goToLastPage()">Last </button>
                 </div>
                 <div class="pagination-options">
                     <label for="itemsPerPageSelect">Items per page:</label>
@@ -169,7 +191,7 @@
                                     <option value="">Select Size</option>
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <button type="button" id="addNewSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                <button type="button" id="addNewSizeBtn" class="btn-small btn-secondary">
                                     + Add New Size
                                 </button>
                             </div>
@@ -179,7 +201,7 @@
                                     <option value="">Select Collar Size</option>
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <button type="button" id="addNewCollarSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                <button type="button" id="addNewCollarSizeBtn" class="btn-small btn-secondary">
                                     + Add New Collar Size
                                 </button>
                             </div>
@@ -189,7 +211,7 @@
                                     <option value="">Select Brand</option>
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <button type="button" id="addNewBrandBtn" class="btn btn-small" style="margin-top: 5px;">
+                                <button type="button" id="addNewBrandBtn" class="btn-small btn-secondary">
                                     + Add New Brand
                                 </button>
                             </div>
@@ -232,7 +254,7 @@
                             <label for="itemDescription">Description</label>
                             <textarea id="itemDescription" name="description" placeholder="Additional details about the item..." rows="3"></textarea>
                         </div>
-                        <div style="text-align: center; margin-top: 20px;">
+                        <div class="modal-submit-row">
                             <button type="submit" class="btn" id="addItemButton">Add Item to Inventory</button>
                         </div>
                     </form>
@@ -267,7 +289,7 @@
                                     <option value="">Select Size</option>
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <button type="button" id="editAddNewSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                <button type="button" id="editAddNewSizeBtn" class="btn-small btn-secondary">
                                     + Add New Size
                                 </button>
                             </div>
@@ -277,7 +299,7 @@
                                     <option value="">Select Collar Size</option>
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <button type="button" id="editAddNewCollarSizeBtn" class="btn btn-small" style="margin-top: 5px;">
+                                <button type="button" id="editAddNewCollarSizeBtn" class="btn-small btn-secondary">
                                     + Add New Collar Size
                                 </button>
                             </div>
@@ -287,7 +309,7 @@
                                     <option value="">Select Brand</option>
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <button type="button" id="editAddNewBrandBtn" class="btn btn-small" style="margin-top: 5px;">
+                                <button type="button" id="editAddNewBrandBtn" class="btn-small btn-secondary">
                                     + Add New Brand
                                 </button>
                             </div>
@@ -330,8 +352,8 @@
                             <label for="editItemDescription">Description</label>
                             <textarea id="editItemDescription" name="description" placeholder="Additional details about the item..." rows="3"></textarea>
                         </div>
-                        <div style="text-align: center; margin-top: 20px;">
-                            <button type="button" class="btn" onclick="tableApp.closeEditItemModal()">Cancel</button>
+                        <div class="modal-submit-row">
+                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeEditItemModal()">Cancel</button>
                             <button type="submit" class="btn" id="editItemButton">Update Item</button>
                         </div>
                     </form>
@@ -351,9 +373,9 @@
                             <label for="newBrandName">Brand Name</label>
                             <input type="text" id="newBrandName" name="brandName" required placeholder="Enter brand name">
                         </div>
-                        <div style="text-align: center; margin-top: 20px;">
+                        <div class="modal-submit-row">
                             <button type="submit" class="btn">Add Brand</button>
-                            <button type="button" class="btn" onclick="tableApp.closeAddBrandModal()">Cancel</button>
+                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddBrandModal()">Cancel</button>
                         </div>
                     </form>
                 </div>
@@ -372,9 +394,9 @@
                             <label for="newCollarSizeName">Collar Size</label>
                             <input type="text" id="newCollarSizeName" name="collarSizeName" required placeholder="e.g., 15.5">
                         </div>
-                        <div style="text-align: center; margin-top: 20px;">
+                        <div class="modal-submit-row">
                             <button type="submit" class="btn">Add Collar Size</button>
-                            <button type="button" class="btn" onclick="tableApp.closeAddCollarSizeModal()">Cancel</button>
+                            <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddCollarSizeModal()">Cancel</button>
                         </div>
                     </form>
                 </div>
@@ -394,9 +416,9 @@
                         <label for="newSizeName">Size</label>
                         <input type="text" id="newSizeName" name="sizeName" required placeholder="e.g., XL, XXL">
                     </div>
-                    <div style="text-align: center; margin-top: 20px;">
+                    <div class="modal-submit-row">
                         <button type="submit" class="btn">Add Size</button>
-                        <button type="button" class="btn" onclick="tableApp.closeAddSizeModal()">Cancel</button>
+                        <button type="button" class="btn btn-secondary" onclick="tableApp.closeAddSizeModal()">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -410,11 +432,11 @@
                 <div class="modal-title">Export Data</div>
             </div>
             <div class="modal-body">
-                <h4>Choose Export Format</h4>
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
-                    <button class="btn" onclick="tableApp.exportData('csv')">📄 Export as CSV</button>
-                    <button class="btn" onclick="tableApp.exportData('json')">📋 Export as JSON</button>
-                    <button class="btn" onclick="tableApp.exportData('excel')">📊 Export as Excel</button>
+                <p class="form-help" style="margin: 0 0 12px;">Choose a format. Exports include every item, not just the current filter.</p>
+                <div class="export-options">
+                    <button class="btn btn-secondary" onclick="tableApp.exportData('csv')">Export as CSV</button>
+                    <button class="btn btn-secondary" onclick="tableApp.exportData('json')">Export as JSON</button>
+                    <button class="btn btn-secondary" onclick="tableApp.exportData('excel')">Export as Excel</button>
                 </div>
             </div>
         </div>
@@ -432,11 +454,11 @@
                     <div class="file-input-wrapper">
                         <input type="file" id="importFile" accept=".csv,.json" />
                     </div>
-                    <div style="text-align: center; margin-top: 20px;">
-                        <button class="btn" onclick="tableApp.handleImportFile()">📥 Import Data</button>
-                        <button class="btn" onclick="tableApp.closeImportModal()">Cancel</button>
+                    <div class="modal-submit-row">
+                        <button class="btn" onclick="tableApp.handleImportFile()">Import Data</button>
+                        <button class="btn btn-secondary" onclick="tableApp.closeImportModal()">Cancel</button>
                     </div>
-                    <p style="color: #666; font-size: 13px; margin-top: 15px;">
+                    <p class="form-help">
                         Supported formats: CSV, JSON<br>
                         Note: Imported items will be added to your existing inventory.
                     </p>
@@ -453,14 +475,14 @@
             </div>
             <div class="modal-body">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <button class="btn" onclick="tableApp.createBackup()">💾 Create Manual Backup</button>
+                    <button class="btn" onclick="tableApp.createBackup()">Create Manual Backup</button>
                 </div>
                 <h4>Available Backups</h4>
                 <div class="backup-list" id="backupList">
                     <p style="text-align: center; color: #666;">Loading backups...</p>
                 </div>
-                <p style="color: #666; font-size: 13px; margin-top: 15px;">
-                    💡 Automated backups run daily at 3 AM. Last 7 automated backups are kept automatically.
+                <p class="form-help">
+                    Automated backups run daily at 3 AM. Last 7 automated backups are kept automatically.
                 </p>
             </div>
         </div>
@@ -478,9 +500,9 @@
                         <label for="soldForPrice">Sold For Price (£) *</label>
                         <input type="number" id="soldForPrice" name="sold_for_price" step="0.01" min="0" required placeholder="0.00" autofocus>
                     </div>
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button type="submit" class="btn">✓ Confirm</button>
-                        <button type="button" class="btn" onclick="tableApp.closeMarkSoldModal()">Cancel</button>
+                    <div class="modal-submit-row">
+                        <button type="button" class="btn btn-secondary" onclick="tableApp.closeMarkSoldModal()">Cancel</button>
+                        <button type="submit" class="btn">Mark as sold</button>
                     </div>
                 </form>
             </div>
@@ -517,6 +539,41 @@
                 return `${margin}%`;
             }
 
+            // Profit in pounds, or null when either price is missing
+            calculateProfit(boughtPrice, sellingPrice) {
+                if (boughtPrice == null || boughtPrice === '' || sellingPrice == null || sellingPrice === '') return null;
+                const bought = parseFloat(boughtPrice);
+                const selling = parseFloat(sellingPrice);
+                if (isNaN(bought) || isNaN(selling)) return null;
+                return selling - bought;
+            }
+
+            formatSignedMoney(amount) {
+                const abs = Math.abs(amount).toFixed(2);
+                return amount < 0 ? `-£${abs}` : `£${abs}`;
+            }
+
+            // Sort key for an item; computed columns are derived here
+            sortValue(item, column) {
+                if (column === 'profit') {
+                    const sellingRaw = item.sold_for_price != null ? item.sold_for_price : item.price;
+                    const p = this.calculateProfit(item.bought_price, sellingRaw);
+                    return p == null ? -Infinity : p;
+                }
+                return item[column] ?? '';
+            }
+
+            // Set the status filter from the select or the stat tiles
+            setStatusFilter(value) {
+                this.currentFilter = value;
+                const select = document.getElementById('statusFilter');
+                if (select.value !== value) select.value = value;
+                document.querySelectorAll('.stat-tile[data-filter]').forEach(tile => {
+                    tile.classList.toggle('active', tile.dataset.filter === value);
+                });
+                this.filterAndDisplayItems();
+            }
+
             getProfitMarginClass(boughtPrice, sellingPrice) {
                 if (!boughtPrice || !sellingPrice) return '';
                 
@@ -545,6 +602,13 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const itemId = urlParams.get('item');
                 const shouldOpenPopup = urlParams.get('popup') === 'true';
+
+                // Deep link from the Management page: /?add=1 opens the Add Item form
+                if (urlParams.get('add') === '1') {
+                    this.showAddItemModal();
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    return;
+                }
 
                 if (itemId && shouldOpenPopup) {
                     console.log('QR Code access detected for item:', itemId);
@@ -586,8 +650,22 @@
                 });
 
                 document.getElementById('statusFilter').addEventListener('change', (e) => {
-                    this.currentFilter = e.target.value;
-                    this.filterAndDisplayItems();
+                    this.setStatusFilter(e.target.value);
+                });
+
+                document.querySelectorAll('.stat-tile[data-filter]').forEach(tile => {
+                    const activate = () => {
+                        const value = tile.dataset.filter;
+                        // Clicking the active tile again clears the filter
+                        this.setStatusFilter(this.currentFilter === value ? 'all' : value);
+                    };
+                    tile.addEventListener('click', activate);
+                    tile.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            activate();
+                        }
+                    });
                 });
 
                 document.getElementById('itemModal').addEventListener('click', (e) => {
@@ -1038,10 +1116,12 @@
                 }
 
                 filtered.sort((a, b) => {
-                    let aVal = a[this.sortColumn] ?? '';
-                    let bVal = b[this.sortColumn] ?? '';
+                    let aVal = this.sortValue(a, this.sortColumn);
+                    let bVal = this.sortValue(b, this.sortColumn);
 
-                    if (['bought_price','sold_for_price','price','id'].includes(this.sortColumn)) {
+                    if (this.sortColumn === 'profit') {
+                        // already numeric
+                    } else if (['bought_price','sold_for_price','price','id'].includes(this.sortColumn)) {
                         aVal = parseFloat(aVal) || 0;
                         bVal = parseFloat(bVal) || 0;
                     } else if (this.sortColumn === 'is_sold') {
@@ -1066,7 +1146,7 @@
 
                 if (this.filteredItems.length === 0) {
                     tbody.innerHTML = `
-                        <tr><td colspan="15" class="empty-state">No items found</td></tr>
+                        <tr><td colspan="14" class="empty-state">No items found</td></tr>
                     `;
                     document.getElementById('paginationControls').style.display = 'none';
                     this.displayMobileCards(); // Also update mobile view
@@ -1089,30 +1169,31 @@
 
                     const profitMargin = this.calculateProfitMargin(item.bought_price, sellingRaw);
                     const profitClass = this.getProfitMarginClass(item.bought_price, sellingRaw);
+                    const profitAmount = this.calculateProfit(item.bought_price, sellingRaw);
+                    const profitCell = profitAmount != null
+                        ? `<span class="profit-amount ${profitClass}">${this.formatSignedMoney(profitAmount)}</span><span class="profit-margin">${profitMargin}</span>`
+                        : '-';
 
                     return `
                     <tr class="${item.is_sold ? 'sold' : ''}" data-item-id="${item.id}" onclick="tableApp.showItemDetails(${item.id})">
-                        <td class="id-cell">#${String(item.id).padStart(3, '0')}</td>
                         <td class="item-number-cell">${this.escapeHtml(item.item_number || '-')}</td>
                         <td class="name-cell" title="${this.escapeHtml(item.name)}">${this.escapeHtml(item.name)}</td>
                         <td title="${this.escapeHtml(item.color)}">${this.escapeHtml(item.color)}</td>
                         <td>${this.escapeHtml(item.size)}</td>
-                        <td class="hide-mobile">${this.escapeHtml(item.collar_size || '-')}</td>
+                        <td class="hide-mobile col-collar">${this.escapeHtml(item.collar_size || '-')}</td>
                         <td class="hide-mobile" title="${this.escapeHtml(item.brand || 'N/A')}">${this.escapeHtml(item.brand || 'N/A')}</td>
-                        <td class="price-cell" style="color: #e74c3c;">${bought}</td>
-                        <td class="price-cell" style="color: #2ecc71;">${selling}</td>
-                        <td class="profit-margin-cell">
-                            ${profitMargin ? `<span class="${profitClass}">${profitMargin}</span>` : '-'}
-                        </td>
-                        <td class="hide-mobile" title="${this.escapeHtml(item.condition_item || 'N/A')}">${this.escapeHtml(item.condition_item || 'N/A')}</td>
-                        <td class="hide-mobile" title="${this.escapeHtml(item.season || 'N/A')}">${this.escapeHtml(item.season || 'N/A')}</td>
-                        <td class="hide-mobile" title="${this.escapeHtml(item.platform || 'Vinted')}">${this.escapeHtml(item.platform || 'Vinted')}</td>
+                        <td class="price-cell">${bought}</td>
+                        <td class="price-cell">${selling}</td>
+                        <td class="profit-cell">${profitCell}</td>
+                        <td class="hide-mobile col-condition" title="${this.escapeHtml(item.condition_item || 'N/A')}">${this.escapeHtml(item.condition_item || 'N/A')}</td>
+                        <td class="hide-mobile col-season" title="${this.escapeHtml(item.season || 'N/A')}">${this.escapeHtml(item.season || 'N/A')}</td>
+                        <td class="hide-mobile col-platform" title="${this.escapeHtml(item.platform || 'Vinted')}">${this.escapeHtml(item.platform || 'Vinted')}</td>
                         <td class="status-cell">
                             <span class="status-badge ${item.is_sold ? 'status-sold' : 'status-available'}">
                                 ${item.is_sold ? 'SOLD' : 'AVAILABLE'}
                             </span>
                         </td>
-                        <td class="hide-mobile">${this.escapeHtml(item.date_added)}</td>
+                        <td class="hide-mobile col-added">${this.escapeHtml(item.date_added)}</td>
                     </tr>
                 `;
                 }).join('');
@@ -1168,15 +1249,15 @@
                                 </div>
                                 <div class="mobile-card-field">
                                     <div class="mobile-card-label">Bought</div>
-                                    <div class="mobile-card-value price" style="color: #e74c3c;">${bought}</div>
+                                    <div class="mobile-card-value price">${bought}</div>
                                 </div>
                                 <div class="mobile-card-field">
                                     <div class="mobile-card-label">Selling</div>
-                                    <div class="mobile-card-value price" style="color: #2ecc71;">${selling}</div>
+                                    <div class="mobile-card-value price">${selling}</div>
                                 </div>
                                 <div class="mobile-card-field">
-                                    <div class="mobile-card-label">Profit Margin</div>
-                                    <div class="mobile-card-value">${profitMargin || '-'}</div>
+                                    <div class="mobile-card-label">Profit</div>
+                                    <div class="mobile-card-value price">${(() => { const p = this.calculateProfit(item.bought_price, sellingRaw); return p != null ? `${this.formatSignedMoney(p)} <span class="profit-margin">${profitMargin}</span>` : '-'; })()}</div>
                                 </div>
                             </div>
                             <div class="mobile-card-footer">
@@ -1198,7 +1279,7 @@
 
                 document.querySelectorAll('.sort-indicator').forEach(indicator => {
                     indicator.classList.remove('active');
-                    indicator.textContent = '↕️';
+                    indicator.textContent = '';
                 });
 
                 const currentIndicator = document.querySelector(`th[onclick="tableApp.sortTable('${column}')"] .sort-indicator`);
@@ -1294,11 +1375,11 @@
                             <h4>Pricing & Profit</h4>
                             <div class="detail-row">
                                 <span class="detail-label">Bought For:</span>
-                                <span class="detail-value" style="color: #e74c3c;">${bought}</span>
+                                <span class="detail-value">${bought}</span>
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label">Sold For Price:</span>
-                                <span class="detail-value" style="color: #2ecc71;">${selling}</span>
+                                <span class="detail-value">${selling}</span>
                             </div>
                             ${profitInfo}
                             <div class="detail-row">
@@ -1336,7 +1417,7 @@
                     <div class="qr-section">
                         <h4>QR Code</h4>
                         <div id="modalQR-${item.id}"></div>
-                        <p style="color: #666; margin-top: 10px;">Scan to view item details</p>
+                        <p class="form-help">Scan to view item details</p>
                     </div>
 
                     <div class="modal-actions">
@@ -1673,9 +1754,9 @@
                 `;
 
                 const colors = {
-                    success: '#4CAF50',
-                    error: '#f44336',
-                    info: '#2196F3'
+                    success: '#15803d',
+                    error: '#b91c1c',
+                    info: '#1f2937'
                 };
                 notification.style.backgroundColor = colors[type] || colors.info;
 

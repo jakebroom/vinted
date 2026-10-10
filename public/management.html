@@ -3,19 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NewStart Retail Inventory Management</title>
+    <title>Management · NewStart Retail</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="management.css">
 </head>
 <body>
+    <header class="app-header">
+        <div class="app-header-inner">
+            <a href="/" class="brand"><span class="brand-mark">NR</span>NewStart Retail</a>
+            <nav class="app-nav" aria-label="Main">
+                <a href="/" class="app-nav-link">Inventory</a>
+                <a href="/manage" class="app-nav-link active" aria-current="page">Management</a>
+                <a href="/insights" class="app-nav-link">Insights</a>
+            </nav>
+            <div class="app-actions">
+                <button onclick="refreshStats()" class="btn btn-secondary">Refresh</button>
+            </div>
+        </div>
+    </header>
+
     <div class="container">
-        <div class="header">
-            <h1>📦 NewStart Retail Inventory System</h1>
-            <div class="nav-buttons">
-                <a href="/inventory.html" class="btn-glass">📋 View Inventory</a>
-                <a href="/insights.html" class="btn-glass">📊 Insights</a>
-                <button onclick="refreshStats()" class="btn-glass">🔄 Refresh</button>
+        <div class="page-header">
+            <div>
+                <h1>Management</h1>
+                <p class="page-subtitle">Reference data, backups, exports and database tools.</p>
             </div>
         </div>
 
@@ -32,7 +44,6 @@
         <div class="content">
             <!-- Overview Section -->
             <div id="overview" class="section active">
-                <h2>System Overview</h2>
                 <div class="section-content">
                     <div class="stats-grid" id="statsGrid">
                         <!-- Stats will be loaded here -->
@@ -42,23 +53,23 @@
                     <div class="quick-actions-section">
                         <h3>Quick Actions</h3>
                         <div class="quick-actions-grid">
-                            <a href="/inventory.html" class="quick-action-card">
-                                <div class="quick-action-icon">📦</div>
+                            <a href="/?add=1" class="quick-action-card">
+                                <div class="quick-action-icon"></div>
                                 <div class="quick-action-title">Add New Item</div>
                                 <div class="quick-action-desc">Add items to inventory</div>
                             </a>
                             <div class="quick-action-card" onclick="createBackup()">
-                                <div class="quick-action-icon">💾</div>
+                                <div class="quick-action-icon"></div>
                                 <div class="quick-action-title">Create Backup</div>
                                 <div class="quick-action-desc">Backup your database</div>
                             </div>
                             <div class="quick-action-card" onclick="exportCSV()">
-                                <div class="quick-action-icon">📄</div>
+                                <div class="quick-action-icon"></div>
                                 <div class="quick-action-title">Export Data</div>
                                 <div class="quick-action-desc">Download CSV report</div>
                             </div>
-                            <a href="/insights.html" class="quick-action-card">
-                                <div class="quick-action-icon">📊</div>
+                            <a href="/insights" class="quick-action-card">
+                                <div class="quick-action-icon"></div>
                                 <div class="quick-action-title">View Insights</div>
                                 <div class="quick-action-desc">Analyze your data</div>
                             </a>
@@ -86,7 +97,7 @@
 
                     <!-- Low Stock Alert -->
                     <div id="lowStockAlert" class="alert-box" style="display: none;">
-                        <h4>⚠️ Low Stock Alert</h4>
+                        <h4>Low Stock Alert</h4>
                         <div id="lowStockItems"></div>
                     </div>
                 </div>
@@ -103,7 +114,7 @@
                     
                     <div class="brands-container">
                         <div class="search-container">
-                            <input type="text" id="brandSearch" class="search-input" placeholder="🔍 Search brands...">
+                            <input type="text" id="brandSearch" class="search-input" placeholder="Search brands...">
                         </div>
                         
                         <div class="brands-grid" id="brandsGrid">
@@ -124,7 +135,7 @@
 
                     <div class="brands-container">
                         <div class="search-container">
-                            <input type="text" id="collarSizeSearch" class="search-input" placeholder="🔍 Search collar sizes...">
+                            <input type="text" id="collarSizeSearch" class="search-input" placeholder="Search collar sizes...">
                         </div>
 
                         <div class="brands-grid" id="collarSizesGrid">
@@ -145,7 +156,7 @@
 
                     <div class="brands-container">
                         <div class="search-container">
-                            <input type="text" id="sizeSearch" class="search-input" placeholder="🔍 Search sizes...">
+                            <input type="text" id="sizeSearch" class="search-input" placeholder="Search sizes...">
                         </div>
 
                         <div class="brands-grid" id="sizesGrid">
@@ -165,7 +176,7 @@
 
                     <!-- Wasabi Status -->
                     <div id="wasabiStatus" class="info-box" style="display: none;">
-                        <h4>☁️ Wasabi Cloud Storage</h4>
+                        <h4>Wasabi Cloud Storage</h4>
                         <div id="wasabiStatusContent">
                             <p>Loading status...</p>
                         </div>
@@ -176,7 +187,7 @@
                         <h3>Create Backup</h3>
                         <p>Create a new manual backup of your database</p>
                         <div class="export-buttons">
-                            <button onclick="createBackup()" class="btn">💾 Create Backup Now</button>
+                            <button onclick="createBackup()" class="btn btn-primary">Create backup now</button>
                         </div>
                     </div>
 
@@ -185,7 +196,7 @@
                         <h3>Local Backups</h3>
                         <p>Backups stored on this server</p>
                         <div class="export-buttons">
-                            <button onclick="loadLocalBackups()" class="btn">🔄 Refresh List</button>
+                            <button onclick="loadLocalBackups()" class="btn">Refresh List</button>
                         </div>
                         <div id="localBackupsList" class="backups-list">
                             <p>Loading backups...</p>
@@ -197,7 +208,7 @@
                         <h3>Remote Backups (Wasabi)</h3>
                         <p>Backups stored in Wasabi cloud storage</p>
                         <div class="export-buttons">
-                            <button onclick="loadRemoteBackups()" class="btn">🔄 Refresh List</button>
+                            <button onclick="loadRemoteBackups()" class="btn">Refresh List</button>
                         </div>
                         <div id="remoteBackupsList" class="backups-list">
                             <p>Loading remote backups...</p>
@@ -206,7 +217,7 @@
 
                     <!-- Automated Backup Info -->
                     <div class="info-box">
-                        <h4>ℹ️ Automated Backups</h4>
+                        <h4>Automated Backups</h4>
                         <p>Automatic backups run daily at 3:00 AM. The last 7 automated backups are kept locally.</p>
                         <p id="wasabiAutoInfo" style="display: none;">When Wasabi is enabled, automated backups are also uploaded to cloud storage.</p>
                     </div>
@@ -224,19 +235,19 @@
                     <div class="export-section">
                         <h3>Available Exports</h3>
                         <div class="export-buttons">
-                            <button onclick="exportCSV()" class="btn">📄 Export CSV</button>
-                            <button onclick="exportJSON()" class="btn">💾 Export JSON</button>
-                            <button onclick="exportSoldItems()" class="btn">✅ Export Sold Items</button>
-                            <button onclick="exportActiveItems()" class="btn">📦 Export Active Items</button>
+                            <button onclick="exportCSV()" class="btn">Export CSV</button>
+                            <button onclick="exportJSON()" class="btn">Export JSON</button>
+                            <button onclick="exportSoldItems()" class="btn">Export Sold Items</button>
+                            <button onclick="exportActiveItems()" class="btn">Export Active Items</button>
                         </div>
                     </div>
 
                     <div class="export-section">
                         <h3>Report Exports</h3>
                         <div class="export-buttons">
-                            <button onclick="exportBrandReport()" class="btn">🏷️ Brand Report</button>
-                            <button onclick="exportProfitReport()" class="btn">💰 Profit Report</button>
-                            <button onclick="exportLocationReport()" class="btn">📍 Location Report</button>
+                            <button onclick="exportBrandReport()" class="btn">Brand Report</button>
+                            <button onclick="exportProfitReport()" class="btn">Profit Report</button>
+                            <button onclick="exportLocationReport()" class="btn">Location Report</button>
                         </div>
                     </div>
                 </div>
@@ -247,24 +258,24 @@
                 <h2>Cleanup Tools</h2>
                 <div class="section-content">
                     <div class="warning-box">
-                        <h4>⚠️ Warning</h4>
+                        <h4>Warning</h4>
                         <p>These tools perform permanent actions on your database. Always backup your data before using cleanup tools.</p>
                     </div>
 
                     <div class="cleanup-section">
                         <h3>Data Cleanup</h3>
                         <div class="export-buttons">
-                            <button onclick="deleteSoldItems()" class="btn btn-danger">🗑️ Delete Sold Items</button>
-                            <button onclick="cleanupDuplicates()" class=" btn btn-danger">🔄 Remove Duplicates</button>
-                            <button onclick="resetDatabase()" class="btn btn-danger">⚠️ Reset Database</button>
+                            <button onclick="deleteSoldItems()" class="btn btn-danger">Delete Sold Items</button>
+                            <button onclick="cleanupDuplicates()" class=" btn btn-danger">Remove Duplicates</button>
+                            <button onclick="resetDatabase()" class="btn btn-danger">Reset Database</button>
                         </div>
                     </div>
 
                     <div class="cleanup-section">
                         <h3>Maintenance</h3>
                         <div class="export-buttons">
-                            <button onclick="optimizeDatabase()" class="btn">⚡ Optimize Database</button>
-                            <button onclick="repairDatabase()" class="btn">🔧 Repair Database</button>
+                            <button onclick="optimizeDatabase()" class="btn">Optimize Database</button>
+                            <button onclick="repairDatabase()" class="btn">Repair Database</button>
                         </div>
                     </div>
                 </div>
@@ -294,7 +305,7 @@
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn" id="saveBrandBtn">Save Brand</button>
-                        <button type="button" class="btn" id="cancelBrandBtn">Cancel</button>
+                        <button type="button" class="btn btn-secondary" id="cancelBrandBtn">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -323,7 +334,7 @@
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn" id="saveCollarSizeBtn">Save Collar Size</button>
-                        <button type="button" class="btn" id="cancelCollarSizeBtn">Cancel</button>
+                        <button type="button" class="btn btn-secondary" id="cancelCollarSizeBtn">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -352,7 +363,7 @@
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn" id="saveSizeBtn">Save Size</button>
-                        <button type="button" class="btn" id="cancelSizeBtn">Cancel</button>
+                        <button type="button" class="btn btn-secondary" id="cancelSizeBtn">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -428,32 +439,32 @@
 
             statsGrid.innerHTML = `
                 <div class="stat-card">
-                    <div class="stat-icon">📦</div>
+                    <div class="stat-icon"></div>
                     <div class="stat-value">${stats.totalItems || 0}</div>
                     <div class="stat-label">Total Items</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">✅</div>
+                    <div class="stat-icon"></div>
                     <div class="stat-value">${stats.activeItems || 0}</div>
                     <div class="stat-label">Active Items</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">💰</div>
+                    <div class="stat-icon"></div>
                     <div class="stat-value">${stats.soldItems || 0}</div>
                     <div class="stat-label">Sold Items</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">💵</div>
+                    <div class="stat-icon"></div>
                     <div class="stat-value">£${totalValue}</div>
                     <div class="stat-label">Active Listings Value</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">🏷️</div>
+                    <div class="stat-icon"></div>
                     <div class="stat-value">${stats.totalBrands || 0}</div>
                     <div class="stat-label">Brands</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon">📈</div>
+                    <div class="stat-icon"></div>
                     <div class="stat-value">£${profit}</div>
                     <div class="stat-label">Total Profit</div>
                 </div>
@@ -479,7 +490,7 @@
                 activityContainer.innerHTML = recentItems.map(item => {
                     const date = new Date(item.created_at || item.date_added);
                     const timeAgo = getTimeAgo(date);
-                    const icon = item.is_sold ? '💰' : '📦';
+                    const icon = item.is_sold ? '' : '';
                     const action = item.is_sold ? 'Sold' : 'Added';
 
                     return `
@@ -809,7 +820,7 @@
                     document.getElementById('remoteBackupsSection').style.display = 'block';
                     document.getElementById('wasabiAutoInfo').style.display = 'block';
                     document.getElementById('wasabiStatusContent').innerHTML = `
-                        <p style="color: #10b981;">✓ Connected to Wasabi cloud storage</p>
+                        <p style="color: #10b981;">Connected to Wasabi cloud storage</p>
                         <p style="font-size: 0.9em;">Backups are automatically uploaded to remote storage</p>
                     `;
                 } else {
@@ -891,7 +902,7 @@
                         ${backups.map(backup => {
                             const sizeKB = (backup.size / 1024).toFixed(2);
                             const date = new Date(backup.created).toLocaleString();
-                            const typeLabel = backup.type === 'automated' ? '🤖 Auto' : '👤 Manual';
+                            const typeLabel = backup.type === 'automated' ? 'Auto' : 'Manual';
 
                             return `
                                 <tr>
@@ -899,11 +910,11 @@
                                     <td>${typeLabel}</td>
                                     <td>${sizeKB} KB</td>
                                     <td>${date}</td>
-                                    <td>
-                                        <button onclick="restoreBackup('${escapeHtml(backup.filename)}')" class="btn-small" style="background: linear-gradient(135deg, #10b981, #059669);">🔄 Restore</button>
-                                        <button onclick="downloadBackup('${escapeHtml(backup.filename)}')" class="btn-small">📥 Download</button>
-                                        ${wasabiEnabled ? `<button onclick="uploadBackupToWasabi('${escapeHtml(backup.filename)}')" class="btn-small">☁️ Upload</button>` : ''}
-                                        <button onclick="deleteBackup('${escapeHtml(backup.filename)}')" class="btn-small btn-danger">🗑️ Delete</button>
+                                    <td class="actions-cell">
+                                        <button onclick="restoreBackup('${escapeHtml(backup.filename)}')" class="btn-small btn-secondary">Restore</button>
+                                        <button onclick="downloadBackup('${escapeHtml(backup.filename)}')" class="btn-small btn-secondary">Download</button>
+                                        ${wasabiEnabled ? `<button onclick="uploadBackupToWasabi('${escapeHtml(backup.filename)}')" class="btn-small btn-secondary">Upload</button>` : ''}
+                                        <button onclick="deleteBackup('${escapeHtml(backup.filename)}')" class="btn-small btn-danger">Delete</button>
                                     </td>
                                 </tr>
                             `;
@@ -1021,7 +1032,7 @@
         }
 
         async function restoreBackup(filename) {
-            const confirmMessage = `⚠️ RESTORE DATABASE WARNING ⚠️
+            const confirmMessage = `RESTORE DATABASE WARNING 
 
 Are you sure you want to restore from "${filename}"?
 
@@ -1054,7 +1065,7 @@ Type "RESTORE" to confirm this action:`;
                     throw new Error(result.error || 'Restore failed');
                 }
 
-                showToast(`✅ Database restored successfully! Contains ${result.itemCount} items. Safety backup: ${result.safetyBackup}`, 'success');
+                showToast(`Database restored successfully! Contains ${result.itemCount} items. Safety backup: ${result.safetyBackup}`, 'success');
 
                 // Reload the page after 2 seconds to refresh all data
                 setTimeout(() => {

@@ -1,6 +1,6 @@
 {
   "name": "vinted-inventory",
-  "version": "1.1.6",
+  "version": "1.2.0",
   "description": "Vinted Inventory System with SQLite and QR codes",
   "main": "server.js",
   "scripts": {

@@ -4,20 +4,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Insights - Newstart Retail Inventory System</title>
+  <title>Insights · NewStart Retail</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="insights.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <a href="/" class="brand"><span class="brand-mark">NR</span>NewStart Retail</a>
+      <nav class="app-nav" aria-label="Main">
+        <a href="/" class="app-nav-link">Inventory</a>
+        <a href="/manage" class="app-nav-link">Management</a>
+        <a href="/insights" class="app-nav-link active" aria-current="page">Insights</a>
+      </nav>
+    </div>
+  </header>
+
   <div class="container">
-    <div class="header">
-      <h1>📈 Inventory Insights</h1>
-      <div class="nav-buttons">
-        <a class="btn-glass" href="/">📊 Inventory</a>
-        <a class="btn-glass" href="/manage">⚙️ Management</a>
-        <button class="btn-glass" id="exportCsvBtn">📄 Export Insights CSV</button>
+    <div class="page-header">
+      <div>
+        <h1>Insights</h1>
+        <p class="page-subtitle">Revenue, margin and sell-through for the selected period.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" id="exportCsvBtn">Export CSV</button>
       </div>
     </div>
 
@@ -45,7 +57,6 @@
         <span class="muted">Brand:</span>
         <input id="brandFilter" class="input" placeholder="e.g. Nike"/>
       </label>
-      <button class="btn-glass" id="applyFiltersBtn">Apply</button>
       <button class="btn-glass" id="resetFiltersBtn">Reset</button>
     </div>
 
@@ -77,14 +88,14 @@
       <div class="card">
         <div class="card-header">Revenue & Profit by Month</div>
         <div class="card-body">
-          <canvas id="revProfitChart"></canvas>
+          <div class="chart-box"><canvas id="revProfitChart"></canvas></div>
           <div class="muted" style="margin-top:8px">Shows totals for each month in range.</div>
         </div>
       </div>
       <div class="card">
         <div class="card-header">Brand Mix (Sold Items)</div>
         <div class="card-body">
-          <canvas id="brandChart"></canvas>
+          <div class="chart-box chart-box-donut"><canvas id="brandChart"></canvas></div>
           <div class="muted" style="margin-top:8px">Distribution of sold items by brand.</div>
         </div>
       </div>
@@ -105,7 +116,7 @@
       <div class="card">
         <div class="card-header">Velocity (Days to Sell)</div>
         <div class="card-body">
-          <canvas id="velocityChart"></canvas>
+          <div class="chart-box"><canvas id="velocityChart"></canvas></div>
           <div class="muted" style="margin-top:8px">Days between date added and sold date (sold items only).</div>
         </div>
       </div>
@@ -115,6 +126,20 @@
   </div>
 
   <script>
+    // Chart palette aligned with the design tokens in shared.css
+    const CHART_PRIMARY = '#4f46e5';
+    const CHART_SECONDARY = '#10b981';
+    const CHART_PALETTE = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316', '#64748b', '#a3e635'];
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#6b7280';
+    Chart.defaults.borderColor = '#e5e7eb';
+    Chart.defaults.responsive = true;
+    Chart.defaults.maintainAspectRatio = false;
+    Chart.defaults.plugins.legend.labels.boxWidth = 10;
+    Chart.defaults.plugins.legend.labels.boxHeight = 10;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
     class InsightsApp {
       constructor() {
         this.items = [];
@@ -129,7 +154,14 @@
       }
 
       bind() {
-        this.$('applyFiltersBtn').addEventListener('click', () => this.applyFilters());
+        // Filters apply as soon as they change; brand text is debounced
+        this.$('rangeMonths').addEventListener('change', () => this.applyFilters());
+        this.$('statusFilter').addEventListener('change', () => this.applyFilters());
+        let brandTimer = null;
+        this.$('brandFilter').addEventListener('input', () => {
+          clearTimeout(brandTimer);
+          brandTimer = setTimeout(() => this.applyFilters(), 250);
+        });
         this.$('resetFiltersBtn').addEventListener('click', () => this.resetFilters());
         this.$('exportCsvBtn').addEventListener('click', () => this.exportInsightsCSV());
       }
@@ -295,8 +327,8 @@
           data: {
             labels,
             datasets: [
-              { label: 'Revenue', data: revenue },
-              { label: 'Profit', data: profit }
+              { label: 'Revenue', data: revenue, backgroundColor: CHART_PRIMARY, borderRadius: 3, maxBarThickness: 48 },
+              { label: 'Profit', data: profit, backgroundColor: CHART_SECONDARY, borderRadius: 3, maxBarThickness: 48 }
             ]
           },
           options: {
@@ -323,8 +355,8 @@
         if (this.brandChart) this.brandChart.destroy();
         this.brandChart = new Chart(ctx, {
           type: 'doughnut',
-          data: { labels, datasets: [{ data: values }] },
-          options: { responsive:true, plugins:{ legend:{ position:'right' } } }
+          data: { labels, datasets: [{ data: values, backgroundColor: CHART_PALETTE, borderWidth: 2, borderColor: '#ffffff' }] },
+          options: { responsive:true, cutout: '62%', plugins:{ legend:{ position:'right' } } }
         });
       }
 
@@ -349,7 +381,7 @@
         if (this.velocityChart) this.velocityChart.destroy();
         this.velocityChart = new Chart(ctx, {
           type: 'bar',
-          data: { labels: buckets.map(b => b.label), datasets: [{ label:'Units', data: counts }] },
+          data: { labels: buckets.map(b => b.label), datasets: [{ label:'Units', data: counts, backgroundColor: CHART_PRIMARY, borderRadius: 3, maxBarThickness: 48 }] },
           options: { responsive:true, plugins:{ legend:{ display:false } } }
         });
       }

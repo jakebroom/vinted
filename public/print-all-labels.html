@@ -3,142 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Export Labels as PDF</title>
+    <title>Print labels · NewStart Retail</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="shared.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            padding: 0;
-            margin: 0;
-            background: #f5f5f5;
-        }
-        .controls {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            z-index: 1000;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .controls h1 {
-            font-size: 18px;
-            margin-right: 20px;
-        }
-        .btn {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn:hover {
-            background: #0056b3;
-        }
-        .btn-secondary {
-            background: #6c757d;
-        }
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-        .btn-success {
-            background: #28a745;
-        }
-        .btn-success:hover {
-            background: #218838;
-        }
-        .btn-danger {
-            background: #dc3545;
-        }
-        .btn-danger:hover {
-            background: #c82333;
-        }
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .status {
-            color: #666;
-            font-size: 14px;
-        }
-        .items-container {
-            margin-top: 80px;
-            padding: 20px;
-        }
-        .items-table {
-            width: 100%;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .label-table {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xs);
             overflow: hidden;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        thead {
-            background: #f8f9fa;
-        }
-        th {
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-            border-bottom: 2px solid #dee2e6;
-        }
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        tr:hover {
-            background: #f8f9fa;
-        }
-        .checkbox-cell {
-            width: 40px;
+
+        .label-table th:first-child,
+        .label-table td:first-child {
+            width: 44px;
             text-align: center;
         }
-        input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+
+        .label-table input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
             cursor: pointer;
+            accent-color: var(--color-primary);
+            vertical-align: middle;
         }
-        .item-id {
-            font-weight: bold;
-            color: #007bff;
+
+        .label-table .item-number {
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
         }
-        .item-name {
-            font-weight: 500;
+
+        .label-table .item-name {
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text);
         }
+
+        .label-table .price {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status {
+            color: var(--color-text-muted);
+            font-size: var(--font-size-sm);
+        }
+
         .no-items {
             text-align: center;
-            padding: 40px;
-            color: #666;
+            padding: var(--space-2xl);
+            color: var(--color-text-muted);
+        }
+
+        .selection-bar {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            flex-wrap: wrap;
+            margin-bottom: var(--space-md);
+        }
+
+        .selection-bar .status {
+            margin-left: auto;
         }
     </style>
 </head>
 <body>
-    <div class="controls">
-        <h1>Export Labels as PDF</h1>
-        <button class="btn btn-success" onclick="selectAll()">✓ Select All</button>
-        <button class="btn btn-secondary" onclick="deselectAll()">✗ Deselect All</button>
-        <button class="btn" id="exportBtn" onclick="exportToPDF()" disabled>📄 Export Selected as PDF</button>
-        <button class="btn btn-secondary" onclick="window.location.href='/'">← Back</button>
-        <div class="status" id="status">Loading items...</div>
-    </div>
+    <header class="app-header">
+        <div class="app-header-inner">
+            <a href="/" class="brand"><span class="brand-mark">NR</span>NewStart Retail</a>
+            <nav class="app-nav" aria-label="Main">
+                <a href="/" class="app-nav-link">Inventory</a>
+                <a href="/manage" class="app-nav-link">Management</a>
+                <a href="/insights" class="app-nav-link">Insights</a>
+            </nav>
+            <div class="app-actions">
+                <button class="btn" id="exportBtn" onclick="exportToPDF()" disabled>Export selected as PDF</button>
+            </div>
+        </div>
+    </header>
 
-    <div class="items-container">
-        <div class="items-table" id="itemsTable">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1>Print labels</h1>
+                <p class="page-subtitle">Choose the available items you want labels for, then export them as a PDF for your label printer.</p>
+            </div>
+            <div class="page-actions">
+                <a href="/" class="btn btn-secondary">Back to inventory</a>
+            </div>
+        </div>
+
+        <div class="selection-bar">
+            <button class="btn btn-secondary btn-small" onclick="selectAll()">Select all</button>
+            <button class="btn btn-secondary btn-small" onclick="deselectAll()">Deselect all</button>
+            <div class="status" id="status">Loading items...</div>
+        </div>
+
+        <div class="label-table" id="itemsTable">
             <!-- Table will be loaded here -->
         </div>
     </div>
@@ -161,6 +123,8 @@
             const totalCount = document.querySelectorAll('.item-checkbox').length;
             document.getElementById('status').textContent = `${selectedCount} of ${totalCount} items selected`;
             document.getElementById('exportBtn').disabled = selectedCount === 0;
+            const master = document.getElementById('selectAllCheckbox');
+            if (master) master.checked = totalCount > 0 && selectedCount === totalCount;
         }
 
         async function exportToPDF() {
@@ -199,14 +163,13 @@
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
 
-                document.getElementById('status').textContent = `PDF generated successfully with ${selectedIds.length} labels!`;
+                document.getElementById('status').textContent = `PDF generated with ${selectedIds.length} labels`;
                 document.getElementById('exportBtn').disabled = false;
 
             } catch (error) {
                 console.error('Error exporting PDF:', error);
                 alert('Failed to export PDF: ' + error.message);
-                document.getElementById('status').textContent = `${document.querySelectorAll('.item-checkbox:checked').length} of ${document.querySelectorAll('.item-checkbox').length} items selected`;
-                document.getElementById('exportBtn').disabled = false;
+                updateSelection();
             }
         }
 
@@ -234,36 +197,36 @@
                     <table>
                         <thead>
                             <tr>
-                                <th class="checkbox-cell">
-                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)">
+                                <th>
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)" aria-label="Select all">
                                 </th>
-                                <th>ID</th>
+                                <th>Item #</th>
                                 <th>Name</th>
                                 <th>Brand</th>
                                 <th>Size</th>
                                 <th>Color</th>
-                                <th>Price</th>
+                                <th class="price">Price</th>
                             </tr>
                         </thead>
                         <tbody>
                 `;
 
                 allItems.forEach(item => {
-                    const itemIdFormatted = '#' + String(item.id).padStart(3, '0');
+                    const itemNumber = item.item_number || ('#' + String(item.id).padStart(3, '0'));
                     const price = item.sold_for_price || item.price;
                     const priceFormatted = price ? '£' + parseFloat(price).toFixed(2) : '-';
 
                     tableHTML += `
                         <tr>
-                            <td class="checkbox-cell">
-                                <input type="checkbox" class="item-checkbox" value="${item.id}" onchange="updateSelection()">
+                            <td>
+                                <input type="checkbox" class="item-checkbox" value="${item.id}" onchange="updateSelection()" aria-label="Select ${escapeHtml(item.name)}">
                             </td>
-                            <td class="item-id">${itemIdFormatted}</td>
+                            <td class="item-number">${escapeHtml(itemNumber)}</td>
                             <td class="item-name">${escapeHtml(item.name)}</td>
                             <td>${escapeHtml(item.brand || 'N/A')}</td>
                             <td>${escapeHtml(item.size)}</td>
                             <td>${escapeHtml(item.color)}</td>
-                            <td>${priceFormatted}</td>
+                            <td class="price">${priceFormatted}</td>
                         </tr>
                     `;
                 });
@@ -274,7 +237,7 @@
                 `;
 
                 container.innerHTML = tableHTML;
-                statusEl.textContent = `${allItems.length} items available`;
+                statusEl.textContent = `0 of ${allItems.length} items selected`;
 
             } catch (error) {
                 console.error('Error loading items:', error);

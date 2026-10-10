@@ -1,178 +1,126 @@
 /* ============================================
    INSIGHTS PAGE - SPECIFIC STYLES
    ============================================
-   Page-specific styles for the analytics/insights page.
-   Common styles are in shared.css
+   Filters, KPI tiles and chart cards.
+   Shared components live in shared.css.
    ============================================ */
 
-/* Header Layout */
-.header {
+/* ============================================
+   FILTERS
+   ============================================ */
+.controls {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
     display: flex;
+    gap: var(--space-sm);
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
     flex-wrap: wrap;
-    margin-bottom: 24px;
+    box-shadow: var(--shadow-xs);
 }
 
-.nav-buttons {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+.controls > .muted:first-child {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-right: var(--space-2xs);
 }
 
-/* Note: Using .btn-glass from shared.css for glassmorphism buttons on gradient backgrounds */
+.controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
 
-/* KPI Grid */
+.controls label .muted {
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.select,
+.input {
+    width: auto;
+    min-width: 120px;
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: var(--font-size-sm);
+}
+
+.select {
+    padding-right: 30px;
+}
+
+.controls .btn-glass {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   KPIs
+   ============================================ */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
-    gap: 20px;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
 }
 
 .kpi {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 24px;
-    border-radius: 20px;
-    backdrop-filter: var(--blur-heavy);
-    -webkit-backdrop-filter: var(--blur-heavy);
-    color: white;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-    will-change: transform; /* Performance: optimize for hover animations */
-}
-
-.kpi:hover {
-    background: rgba(255,255,255,0.2);
-    border-color: rgba(255,255,255,0.3);
-    transform: translateY(-4px);
-    box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--space-lg);
+    box-shadow: var(--shadow-xs);
 }
 
 .kpi .label {
-    font-size: .9rem;
-    opacity: .9;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
-    letter-spacing: .5px;
-    color: white;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
 }
 
 .kpi .value {
-    font-size: 1.8rem;
-    font-weight: 800;
-    margin-top: 6px;
-    color: white;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
 }
 
 .kpi .sub {
-    font-size: .85rem;
-    opacity: .85;
-    margin-top: 6px;
-    color: white;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-top: 2px;
 }
 
-/* Card Grid Layout */
+/* ============================================
+   CHART CARDS
+   ============================================ */
 .card-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: var(--space-md);
 }
 
 @media (min-width: 900px) {
     .card-grid {
-        grid-template-columns: 1.2fr .8fr;
+        grid-template-columns: 1.2fr 0.8fr;
     }
 }
 
-/* Card Styles */
-.card {
-    background: #fff;
-    color: #222;
-    border-radius: 24px;
-    overflow: visible;
-    box-shadow: 0 8px 24px rgba(0,0,0,.12);
-    border: none;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    will-change: transform; /* Performance: optimize for hover animations */
-}
-
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(0,0,0,.18);
-}
-
-.card-header {
-    padding: 20px 24px;
-    font-weight: 700;
-    font-size: 1.1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
-    border-bottom: none;
-    position: relative;
-    border-radius: 24px 24px 0 0;
-    margin: 0;
-}
-
-.card-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-}
-
-.card-body {
-    padding: 24px;
-    border-radius: 0 0 24px 24px;
-    background: #fff;
-}
-
-/* Utility Classes */
-.flex {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.muted {
-    opacity: .8;
-    font-size: .9rem;
-    color: white;
-}
-
-/* Table Styles */
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .95rem;
-}
-
-.table th,
-.table td {
-    padding: 10px 8px;
-    border-bottom: 1px solid #eee;
-}
-
-/* Chip/Badge Styles */
-.chip {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: #eef2ff;
-    color: #3949ab;
-    font-weight: 700;
-    font-size: .8rem;
-}
-
-/* Row Layout */
 .row {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: var(--space-md);
 }
 
 @media (min-width: 900px) {
@@ -181,91 +129,97 @@
     }
 }
 
-/* Footer */
+.card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: var(--space-sm) var(--space-lg);
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    background: var(--color-surface-muted);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.card-body {
+    padding: var(--space-lg);
+}
+
+.card-body .muted {
+    font-size: var(--font-size-sm);
+}
+
+/* Fixed-height chart boxes so charts don't scale with card width */
+.chart-box {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.chart-box-donut {
+    height: 300px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.chart-box canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Tables inside cards */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-base);
+}
+
+.table th {
+    position: static;
+    background: transparent;
+    padding: 8px 10px;
+}
+
+.table td {
+    padding: 9px 10px;
+}
+
+.table th:not(:first-child),
+.table td:not(:first-child) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.table tbody tr:hover {
+    background: transparent;
+}
+
+.flex {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
 .footer {
     text-align: center;
-    margin: 28px 0 12px;
-    opacity: .85;
-    font-size: .9rem;
-}
-
-/* Chart.js Canvas */
-canvas {
-    width: 100%;
-    height: 320px;
-}
-
-/* Filter Controls */
-.controls {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 20px;
-    border-radius: 20px;
-    margin-bottom: 24px;
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    flex-wrap: wrap;
-    backdrop-filter: var(--blur-heavy);
-    -webkit-backdrop-filter: var(--blur-heavy);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-}
-
-.controls label {
-    color: white;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.select,
-.input {
-    background: rgba(255,255,255,0.1);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.35);
-    padding: 8px 10px;
-    border-radius: 8px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
-}
-
-.select:focus,
-.input:focus {
-    outline: none;
-    border-color: rgba(255,255,255,0.6);
-    background: rgba(255,255,255,0.15);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-}
-
-.input::placeholder {
-    color: rgba(255,255,255,0.7);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.select option {
-    background: white;
-    color: #333;
+    margin: var(--space-lg) 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-faint);
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE
    ============================================ */
-
 @media (max-width: 900px) {
     .kpi-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    }
-
-    .kpi .value {
-        font-size: 1.5rem;
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (max-width: 640px) {
-    .header {
-        flex-direction: column;
-        text-align: center;
-    }
-
     .kpi-grid {
         grid-template-columns: 1fr;
     }
@@ -275,12 +229,17 @@ canvas {
         align-items: stretch;
     }
 
+    .controls label {
+        justify-content: space-between;
+    }
+
     .select,
     .input {
         width: 100%;
     }
 
-    canvas {
-        height: 250px;
+    .chart-box,
+    .chart-box-donut {
+        height: 240px;
     }
 }
