@@ -42,7 +42,7 @@ if (WASABI_ENABLED && WASABI_ACCESS_KEY_ID && WASABI_SECRET_ACCESS_KEY && WASABI
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' })); // imports can carry hundreds of items
 app.use(express.static('public'));
 
 // Ensure data directory exists
@@ -52,7 +52,8 @@ if (!fs.existsSync(dataDir)) {
 }
 
 // Initialize SQLite database
-const db = new sqlite3.Database(DB_PATH, (err) => {
+// Declared with `let` so the restore endpoint can swap in a fresh connection.
+let db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
         console.error('Error opening database:', err.message);
     } else {
@@ -82,6 +83,7 @@ function initializeDatabase() {
             location TEXT,
             season TEXT,
             platform TEXT DEFAULT 'Vinted',
+            collar_size TEXT,
             item_number TEXT
         );
     `;
@@ -113,43 +115,47 @@ function initializeDatabase() {
         );
     `;
 
-    db.run(createItemsTableSQL, (err) => {
-        if (err) {
-            console.error('Error creating items table:', err.message);
-        } else {
-            console.log('Items table initialized successfully');
-        }
-    });
+    // Run table creation and migrations in order. Without serialize() the
+    // ALTER TABLE migrations can run before the tables exist on a fresh DB.
+    db.serialize(() => {
+        db.run(createItemsTableSQL, (err) => {
+            if (err) {
+                console.error('Error creating items table:', err.message);
+            } else {
+                console.log('Items table initialized successfully');
+            }
+        });
 
-    db.run(createBrandsTableSQL, (err) => {
-        if (err) {
-            console.error('Error creating brands table:', err.message);
-        } else {
-            console.log('Brands table initialized successfully');
-            addDefaultBrands();
-        }
-    });
+        db.run(createBrandsTableSQL, (err) => {
+            if (err) {
+                console.error('Error creating brands table:', err.message);
+            } else {
+                console.log('Brands table initialized successfully');
+                addDefaultBrands();
+            }
+        });
 
-    db.run(createCollarSizesTableSQL, (err) => {
-        if (err) {
-            console.error('Error creating collar_sizes table:', err.message);
-        } else {
-            console.log('Collar sizes table initialized successfully');
-            addDefaultCollarSizes();
-        }
-    });
+        db.run(createCollarSizesTableSQL, (err) => {
+            if (err) {
+                console.error('Error creating collar_sizes table:', err.message);
+            } else {
+                console.log('Collar sizes table initialized successfully');
+                addDefaultCollarSizes();
+            }
+        });
 
-    db.run(createSizesTableSQL, (err) => {
-        if (err) {
-            console.error('Error creating sizes table:', err.message);
-        } else {
-            console.log('Sizes table initialized successfully');
-            addDefaultSizes();
-        }
-    });
+        db.run(createSizesTableSQL, (err) => {
+            if (err) {
+                console.error('Error creating sizes table:', err.message);
+            } else {
+                console.log('Sizes table initialized successfully');
+                addDefaultSizes();
+            }
+        });
 
-    // Add columns that might not exist in older databases
-    addMissingColumns();
+        // Add columns that might not exist in older databases
+        addMissingColumns();
+    });
 }
 
 // Add default brands
@@ -1172,7 +1178,9 @@ app.delete('/api/cleanup/reset', (req, res) => {
                 console.error('Error deleting all items:', err.message);
                 return res.status(500).json({ error: 'Failed to reset database' });
             }
-            
+
+            const itemsDeleted = this.changes;
+
             // Reset auto-increment counter
             db.run('DELETE FROM sqlite_sequence WHERE name="items"', [], (err) => {
                 if (err) {
@@ -1197,9 +1205,9 @@ app.delete('/api/cleanup/reset', (req, res) => {
                 // Re-add default brands
                 addDefaultBrands();
                 
-                res.json({ 
+                res.json({
                     message: 'Database reset successfully',
-                    itemsDeleted: this.changes
+                    itemsDeleted: itemsDeleted
                 });
             });
         });
@@ -1305,6 +1313,35 @@ if (!fs.existsSync(BACKUP_DIR)) {
     fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
+// Resolve a user-supplied backup filename to a path inside BACKUP_DIR.
+// Returns null for anything that is not a plain .db filename (no separators,
+// no "..", no encoded traversal) so route params cannot escape the directory.
+function resolveBackupPath(filename) {
+    if (typeof filename !== 'string' || !/^[A-Za-z0-9._-]+\.db$/.test(filename) || filename.includes('..')) {
+        return null;
+    }
+    const resolved = path.resolve(BACKUP_DIR, filename);
+    if (path.dirname(resolved) !== path.resolve(BACKUP_DIR)) {
+        return null;
+    }
+    return resolved;
+}
+
+// Work out when a backup was created. Filenames embed the timestamp, which is
+// more reliable than fs birthtime (zero or equal to ctime on some Linux/Docker
+// filesystems). Falls back to mtime for anything unrecognised.
+function backupCreatedAt(filename, stats) {
+    const iso = filename.match(/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/);
+    if (iso) {
+        return new Date(`${iso[1]}T${iso[2]}:${iso[3]}:${iso[4]}.${iso[5]}Z`);
+    }
+    const epoch = filename.match(/safety-backup-(\d+)\.db$/);
+    if (epoch) {
+        return new Date(parseInt(epoch[1], 10));
+    }
+    return stats.mtime;
+}
+
 // Create manual backup
 app.post('/api/backups/create', (req, res) => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1353,7 +1390,7 @@ app.get('/api/backups', (req, res) => {
                 return {
                     filename: file,
                     size: stats.size,
-                    created: stats.birthtime,
+                    created: backupCreatedAt(file, stats),
                     type: isAuto ? 'automated' : 'manual'
                 };
             })
@@ -1366,7 +1403,11 @@ app.get('/api/backups', (req, res) => {
 // Download backup
 app.get('/api/backups/download/:filename', (req, res) => {
     const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = resolveBackupPath(filename);
+
+    if (!backupPath) {
+        return res.status(400).json({ error: 'Invalid backup filename' });
+    }
 
     if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ error: 'Backup not found' });
@@ -1383,7 +1424,11 @@ app.get('/api/backups/download/:filename', (req, res) => {
 // Delete backup
 app.delete('/api/backups/:filename', (req, res) => {
     const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = resolveBackupPath(filename);
+
+    if (!backupPath) {
+        return res.status(400).json({ error: 'Invalid backup filename' });
+    }
 
     if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ error: 'Backup not found' });
@@ -1402,7 +1447,11 @@ app.delete('/api/backups/:filename', (req, res) => {
 // Restore backup
 app.post('/api/backups/:filename/restore', (req, res) => {
     const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = resolveBackupPath(filename);
+
+    if (!backupPath) {
+        return res.status(400).json({ error: 'Invalid backup filename' });
+    }
 
     // Validate backup file exists
     if (!fs.existsSync(backupPath)) {
@@ -1499,19 +1548,18 @@ app.post('/api/backups/:filename/restore', (req, res) => {
     });
 });
 
-// Helper function to reopen database connection
+// Helper function to reopen database connection.
+// Reassigns the module-level `db` so every route picks up the new handle.
+// (The previous Object.assign approach copied nothing, leaving a closed
+// connection in place until the process was restarted.)
 function reopenDatabase() {
-    const sqlite3 = require('sqlite3').verbose();
-    const newDb = new sqlite3.Database(DB_PATH, (err) => {
+    db = new sqlite3.Database(DB_PATH, (err) => {
         if (err) {
             console.error('Error reopening database:', err.message);
         } else {
             console.log('Database connection reopened');
         }
     });
-
-    // Replace global db object
-    Object.assign(db, newDb);
 }
 
 // Upload existing backup to Wasabi
@@ -1521,7 +1569,11 @@ app.post('/api/backups/:filename/upload-to-wasabi', async (req, res) => {
     }
 
     const { filename } = req.params;
-    const backupPath = path.join(BACKUP_DIR, filename);
+    const backupPath = resolveBackupPath(filename);
+
+    if (!backupPath) {
+        return res.status(400).json({ error: 'Invalid backup filename' });
+    }
 
     if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ error: 'Backup not found' });
@@ -1706,7 +1758,7 @@ function cleanupOldBackups() {
             .map(file => ({
                 filename: file,
                 path: path.join(BACKUP_DIR, file),
-                created: fs.statSync(path.join(BACKUP_DIR, file)).birthtime
+                created: backupCreatedAt(file, fs.statSync(path.join(BACKUP_DIR, file)))
             }))
             .sort((a, b) => b.created - a.created);
 
@@ -2271,7 +2323,8 @@ app.get('/api/export/location-report', (req, res) => {
 
 // Database backup
 app.get('/api/backup', (req, res) => {
-    const backupPath = `./data/backup-${Date.now()}.db`;
+    // Write next to the live database rather than a cwd-relative ./data path
+    const backupPath = path.join(dataDir, `backup-${Date.now()}.db`);
     
     db.backup(backupPath, (err) => {
         if (err) {
@@ -2338,14 +2391,6 @@ app.get('/insights', (req, res) => {
 
 app.get('/print-all-labels', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'print-all-labels.html'));
-});
-
-// QR Code generation
-app.get('/qr/:id', (req, res) => {
-    const { id } = req.params;
-    const url = `${req.protocol}://${req.get('host')}/#item-${id}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=333333&margin=10&format=png`;
-    res.redirect(qrUrl);
 });
 
 // ================================
