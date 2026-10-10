@@ -1,446 +1,44 @@
-# 📦 Vinted Inventory System
+# NewStart Retail Inventory
 
-A comprehensive inventory management system for Vinted sellers with SQLite database, advanced reporting, brand management, and a modern web interface.
+A small, self-hosted inventory system for people who resell clothing on Vinted and similar platforms. It tracks what you bought, what you paid, where it is stored, what it sold for, and what you made. It prints QR-coded labels, exports reports, and backs itself up every night.
 
-## 🚀 Quick Start
+Built with Express, SQLite and plain HTML, CSS and JavaScript. No build step, no framework, one process, one database file.
 
-### Option 1: Docker (Recommended for Production)
+**Current version: 1.2.0**
 
-#### Prerequisites
-- Docker
-- Docker Compose
+---
 
-#### Setup
-```bash
-# Clone or navigate to project directory
-cd vinted-inventory
+## Contents
 
-# Start with Docker Compose
-docker-compose up -d
+- [Quick start](#quick-start)
+- [What it does](#what-it-does)
+- [The pages](#the-pages)
+- [Configuration](#configuration)
+- [Backups and restore](#backups-and-restore)
+- [Updating a running install](#updating-a-running-install)
+- [API reference](#api-reference)
+- [Project layout](#project-layout)
+- [Customising the look](#customising-the-look)
+- [Database schema](#database-schema)
+- [Troubleshooting](#troubleshooting)
+- [Security notes](#security-notes)
+- [Development](#development)
+- [Version history](#version-history)
 
-# View logs
-docker-compose logs -f
+---
 
-# Access the application
-# Open http://localhost:3000 in your browser
-```
+## Quick start
 
-### Option 2: Local Development
+### Option 1: Docker Hub image (recommended)
 
-#### Prerequisites
-- Node.js (v16.0.0 or higher)
-- npm
+Create a folder with this `docker-compose.yaml`:
 
-#### Setup
-```bash
-# Install dependencies
-npm install
-
-# Start the application
-npm start
-
-# Or for development with auto-restart
-npm run dev
-
-# Access the application
-# Open http://localhost:3000 in your browser
-```
-
-## 📁 File Structure
-
-```
-vinted-inventory/
-├── server.js              # Express.js backend server
-├── package.json           # Node.js dependencies and scripts
-├── Dockerfile             # Docker container configuration
-├── docker-compose.yaml    # Docker Compose orchestration
-├── .dockerignore          # Files to exclude from Docker build
-├── public/
-│   ├── inventory.html     # Main table view
-│   ├── inventory.css      # Table view styles
-│   ├── management.html    # Management page
-│   ├── management.css     # Management styles
-│   ├── insights.html      # Analytics & insights
-│   ├── insights.css       # Insights styles
-│   ├── print-label.html   # Print label page
-│   └── favicon.svg        # Site favicon
-└── data/
-    └── inventory.db       # SQLite database (auto-created)
-```
-
-## 🎯 Features
-
-### Core Functionality
-✅ **Item Management** - Add, edit, delete items with full details
-✅ **Advanced Fields** - Name, color, size, collar size, brand, prices, condition, location, season, platform
-✅ **Sold/Available Tracking** - Mark items as sold with automatic date tracking
-✅ **Search & Filter** - Real-time search with status filters
-✅ **QR Code Generation** - Unique QR codes for each item
-✅ **Sortable Tables** - Click column headers to sort
-✅ **Print Labels** - Print-friendly labels with QR codes
-
-### Management Features
-✅ **Brand Management** - Add, edit, activate/deactivate brands
-✅ **Size Management** - Manage clothing sizes (XXS-XXXL, One Size)
-✅ **Collar Size Management** - Track shirt collar sizes (14-20)
-✅ **Bulk Operations** - Delete sold items, remove duplicates, reset database
-✅ **Database Maintenance** - Optimize, repair, integrity checks
-
-### Analytics & Insights
-✅ **Dashboard Statistics** - Total items, sold items, active inventory, active listings value
-✅ **Financial Tracking** - Profit calculations from sold items
-✅ **Brand Performance** - See which brands sell best
-✅ **Location Reports** - Track items by storage location
-✅ **Charts & Visualizations** - Interactive charts with Chart.js
-
-### Export & Reporting
-✅ **CSV Export** - Export all items, sold items, or active items
-✅ **Brand Reports** - Detailed brand performance analysis
-✅ **Profit Reports** - Profit margins and ROI tracking
-✅ **Location Reports** - Inventory by location
-✅ **Database Backup** - Download complete database file
-
-### Technical Features
-✅ **REST API** - Full API for integrations
-✅ **SQLite Database** - Persistent storage with automatic migrations
-✅ **Responsive Design** - Works on mobile and desktop
-✅ **Modern UI** - Purple gradient theme with glassmorphism effects
-✅ **No Build Process** - Vanilla JavaScript and CSS
-
-## 🔧 Usage
-
-### Main Pages
-
-**Inventory (Table View)** - `http://localhost:3000/`
-- View all items in a sortable table
-- Search and filter by status
-- Quick edit, mark as sold, or delete
-- Export to CSV
-
-**Management** - `http://localhost:3000/manage`
-- Add and manage items
-- Manage brands, sizes, and collar sizes
-- Database cleanup and maintenance
-- Bulk operations
-
-**Insights** - `http://localhost:3000/insights`
-- View analytics and statistics
-- Visual charts and graphs
-- Export detailed reports
-- Track profit and performance
-
-## 🌐 API Endpoints
-
-### Items
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/items` | Get all items |
-| GET | `/api/items?search=term` | Search items |
-| GET | `/api/items?status=sold` | Filter by status |
-| GET | `/api/items/:id` | Get single item |
-| POST | `/api/items` | Add new item |
-| PUT | `/api/items/:id` | Update item |
-| PATCH | `/api/items/:id/sold` | Mark as sold/available |
-| DELETE | `/api/items/:id` | Delete item |
-
-### Brands
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/brands` | Get active brands |
-| GET | `/api/brands/all` | Get all brands |
-| POST | `/api/brands` | Add new brand |
-| PUT | `/api/brands/:id` | Update brand |
-| DELETE | `/api/brands/:id` | Delete brand |
-
-### Sizes
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/sizes` | Get active sizes |
-| GET | `/api/sizes/all` | Get all sizes |
-| POST | `/api/sizes` | Add new size |
-| PUT | `/api/sizes/:id` | Update size |
-| DELETE | `/api/sizes/:id` | Delete size |
-
-### Collar Sizes
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/collar-sizes` | Get active collar sizes |
-| GET | `/api/collar-sizes/all` | Get all collar sizes |
-| POST | `/api/collar-sizes` | Add new collar size |
-| PUT | `/api/collar-sizes/:id` | Update collar size |
-| DELETE | `/api/collar-sizes/:id` | Delete collar size |
-
-### Analytics & Reports
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/stats` | Get inventory statistics |
-| GET | `/api/cleanup/stats` | Get cleanup statistics |
-| GET | `/api/export/csv` | Export all items to CSV |
-| GET | `/api/export/sold` | Export sold items to CSV |
-| GET | `/api/export/active` | Export active items to CSV |
-| GET | `/api/export/brand-report` | Brand performance report |
-| GET | `/api/export/profit-report` | Profit analysis report |
-| GET | `/api/export/location-report` | Location inventory report |
-
-### Maintenance
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| DELETE | `/api/cleanup/sold` | Delete all sold items |
-| DELETE | `/api/cleanup/duplicates` | Remove duplicate items |
-| DELETE | `/api/cleanup/reset` | Reset entire database |
-| POST | `/api/maintenance/optimize` | Optimize database |
-| POST | `/api/maintenance/repair` | Repair database |
-| GET | `/api/backup` | Download database backup |
-
-### Example API Usage
-```bash
-# Add an item
-curl -X POST http://localhost:3000/api/items \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Dress Shirt",
-    "color": "Blue",
-    "size": "M",
-    "collar_size": "15.5",
-    "brand": "Ralph Lauren",
-    "bought_price": 10.00,
-    "selling_price": 25.99,
-    "condition_item": "Like New",
-    "location": "Box A",
-    "season": "All Season",
-    "platform": "Vinted"
-  }'
-
-# Search items
-curl "http://localhost:3000/api/items?search=shirt&status=available"
-
-# Get statistics
-curl http://localhost:3000/api/stats
-
-# Mark item as sold
-curl -X PATCH http://localhost:3000/api/items/1/sold \
-  -H "Content-Type: application/json" \
-  -d '{"is_sold": true}'
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-```bash
-# Optional configuration
-export PORT=3000                          # Server port (default: 3000)
-export DB_PATH=./data/inventory.db        # Database path
-export NODE_ENV=production                # Production mode
-
-# Wasabi S3 Configuration (for remote backups)
-export WASABI_ENABLED=true                # Enable Wasabi remote backups
-export WASABI_ACCESS_KEY_ID=your_key      # Wasabi access key
-export WASABI_SECRET_ACCESS_KEY=your_secret # Wasabi secret key
-export WASABI_BUCKET_NAME=your_bucket     # Wasabi bucket name
-export WASABI_REGION=us-east-1            # Wasabi region
-export WASABI_RETENTION_DAYS=14           # Keep backups for 14 days (default)
-```
-
-Copy `.env.example` to `.env` and configure your Wasabi credentials for automated remote backups.
-
-### Custom Port
-```bash
-PORT=8080 npm start
-```
-
-## 💾 Data Management
-
-### Backup
-
-#### Local Backups
-- **Web Interface**: Use "Download Backup" button in Management page
-- **Manual**: Copy `./data/inventory.db` file
-- **Automated Daily**: Automatic backups run at 3 AM (stored in `./data/backups/`)
-- **Retention**: Last 7 automated backups are kept
-
-#### Remote Backups (Wasabi)
-- **Setup**: Configure Wasabi credentials in `.env` file
-- **Automated**: Daily backups automatically upload to Wasabi when enabled
-- **Retention**: Automatically deletes backups older than 14 days (configurable via `WASABI_RETENTION_DAYS`)
-- **Manual Upload**: Upload existing backups via API endpoint
-- **List Remote**: View all backups stored in Wasabi
-
-API Endpoints for Wasabi:
-```bash
-# List remote backups
-GET /api/backups/wasabi/list
-
-# Upload existing backup to Wasabi
-POST /api/backups/:filename/upload-to-wasabi
-```
-
-**Retention Policy**: By default, Wasabi backups older than 14 days are automatically deleted during the daily backup process. You can customize this by setting `WASABI_RETENTION_DAYS` in your `.env` file (e.g., `WASABI_RETENTION_DAYS=30` for 30 days).
-
-### Restore
-
-#### Via Web Interface (Recommended)
-1. Go to Management page → Database Backups section
-2. Click "Restore" next to the backup you want to restore
-3. Confirm the restoration
-4. The system will automatically:
-   - Create a safety backup of your current database
-   - Close the database connection
-   - Replace the database with the selected backup
-   - Reopen and validate the connection
-   - Roll back if any issues are detected
-
-#### Manual Restore
-1. Stop the application
-2. Replace `./data/inventory.db` with your backup file
-3. Restart the application: `npm start`
-
-**API Endpoint**: `POST /api/backups/:filename/restore`
-
-### Database Maintenance
-- **Optimize**: Management page → Database Maintenance → Optimize
-- **Repair**: Management page → Database Maintenance → Repair
-- **Clear Data**: Management page → Clean Database → Reset Database
-
-## 🎨 Customization
-
-### Design System
-The application uses a modern purple gradient theme with:
-- Primary gradient: `#667eea` → `#764ba2`
-- Glassmorphism effects with backdrop blur
-- Responsive flexbox layouts
-- System fonts for optimal performance
-
-### Modifying Colors
-Edit the CSS files in the `public/` directory:
-- `inventory.css` - Table view styles
-- `management.css` - Management page styles
-- `insights.css` - Analytics page styles
-
-## 🛠️ Troubleshooting
-
-### Docker Issues
-
-#### Port Already in Use
-```bash
-# Check what's using port 3000
-docker ps | grep 3000
-# Or change port in docker-compose.yaml
-ports:
-  - "3001:3000"
-```
-
-#### Container Won't Start
-```bash
-# Check logs
-docker-compose logs
-
-# Rebuild from scratch
-docker-compose down
-docker system prune -f
-docker-compose up --build
-```
-
-#### Permission Issues on Data Directory
-```bash
-# Fix permissions (Linux/Mac)
-sudo chown -R $USER:$USER ./data
-
-# Or run container with user ID
-docker-compose down
-docker-compose run --user $(id -u):$(id -g) vinted-inventory
-```
-
-### Local Development Issues
-
-#### Port Already in Use
-```bash
-# Kill process on port 3000
-npx kill-port 3000
-# Or use a different port
-PORT=3001 npm start
-```
-
-#### Missing Dependencies
-```bash
-npm install
-```
-
-### Database Issues
-
-#### Database Locked
-```bash
-# Docker
-docker-compose restart
-
-# Local
-rm data/*.db-journal
-npm start
-```
-
-#### Database Corruption
-Use the repair function in Management page or:
-```bash
-sqlite3 data/inventory.db "PRAGMA integrity_check;"
-```
-
-#### Backup Database Before Changes
-```bash
-# Docker
-docker-compose exec vinted-inventory cp /app/data/inventory.db /app/data/backup.db
-
-# Local
-cp data/inventory.db data/backup.db
-```
-
-## 🚀 Production Deployment
-
-### Docker Deployment (Recommended)
-
-#### Basic Docker Commands
-```bash
-# Build and start
-docker-compose up -d --build
-
-# Stop
-docker-compose down
-
-# Restart
-docker-compose restart
-
-# View logs
-docker-compose logs -f
-
-# Check status
-docker-compose ps
-
-# Update after code changes
-docker-compose down
-docker-compose up -d --build
-```
-
-#### Docker Configuration
-
-The application includes a production-ready Docker setup:
-- **Node 18 Alpine** base image (lightweight)
-- **Health checks** built-in (30s interval)
-- **Non-root user** for security
-- **Volume persistence** for database
-- **Auto-restart** unless stopped manually
-
-#### Custom Port with Docker
-```yaml
-# Edit docker-compose.yaml
-ports:
-  - "8080:3000"  # Access via http://localhost:8080
-```
-
-#### Production docker-compose.yaml Example
 ```yaml
 services:
   vinted-inventory:
-    build: .
+    image: jakebroom/vinted-inventory:latest
     ports:
-      - "127.0.0.1:3000:3000"  # Only bind to localhost
+      - "3000:3000"
     volumes:
       - ./data:/app/data
     environment:
@@ -448,91 +46,414 @@ services:
       - DB_PATH=/app/data/inventory.db
     restart: unless-stopped
     container_name: vinted-inventory
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 ```
 
-### Alternative: PM2 (Without Docker)
+Then:
+
 ```bash
-npm install -g pm2
-pm2 start server.js --name vinted-inventory
-pm2 save
-pm2 startup
+docker compose up -d
 ```
 
-### With Nginx Reverse Proxy
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
+Open http://localhost:3000. The database is created in `./data` on first run and survives container updates.
 
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
+### Option 2: Build from source with Docker
+
+```bash
+git clone https://github.com/jakebroom/vinted.git
+cd vinted
+docker compose up -d --build
 ```
 
-### Security Recommendations
-- Run behind a reverse proxy (nginx)
-- Use Docker with localhost binding for production
-- Add authentication if exposing publicly
-- Use HTTPS with SSL certificates (Let's Encrypt)
-- Regular database backups
-- Restrict file permissions on `data/` directory
-- Keep Docker images updated
+The compose file in the repo builds the image locally instead of pulling it.
 
-## 📊 Database Schema
+### Option 3: Run with Node
 
-### Items Table
-- `id` - Primary key
-- `name` - Item name
-- `color` - Color description
-- `size` - Clothing size
-- `collar_size` - Shirt collar size
-- `brand` - Brand name
-- `bought_price` - Purchase price
-- `selling_price` - Listed selling price
-- `condition_item` - Item condition
-- `description` - Item description
-- `location` - Storage location
-- `season` - Season (Spring/Summer/Fall/Winter/All Season)
-- `platform` - Selling platform (default: Vinted)
-- `is_sold` - Sold status (0/1)
-- `sold_date` - Date sold
-- `date_added` - Date added
-- `created_at` - Timestamp
+Requires Node.js 18 or newer.
 
-### Brands, Sizes, Collar Sizes Tables
-- `id` - Primary key
-- `name` - Name (unique)
-- `is_active` - Active status (0/1)
-- `created_at` - Timestamp
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Make changes and test thoroughly
-4. Submit a pull request
-
-## 📄 License
-
-MIT License - feel free to use for personal or commercial projects.
-
-## 🎉 Credits
-
-Built with:
-- **Express.js** - Web framework
-- **SQLite3** - Database
-- **Chart.js** - Data visualization
-- Vanilla JavaScript & CSS - Frontend
+```bash
+npm install
+npm start          # production
+npm run dev        # auto-reload with nodemon
+```
 
 ---
 
-Happy selling on Vinted! 🎉
+## What it does
+
+**Items**
+- Name, colour, size, collar size, brand, condition, description, storage location, season, platform, item number
+- Bought price and sold-for price, with profit and margin calculated for you
+- Mark items sold or available with automatic sold-date tracking
+- Search across every field, filter by status, sort any column
+- Import from CSV or JSON, export to CSV, JSON or Excel
+
+**Labels**
+- Every item has a QR code that opens its details when scanned
+- Print a single label from the item detail view
+- Print a batch of 40mm x 30mm labels as a PDF for thermal label printers
+
+**Reference data**
+- Brands, sizes and collar sizes are managed lists with active and inactive states
+- Entries in use by items cannot be deleted, only deactivated
+
+**Insights**
+- Revenue, cost, gross profit, margin and sell-through for a chosen period
+- Revenue and profit by month, brand mix, top brands by revenue, days-to-sell distribution
+- Export the filtered dataset as CSV
+
+**Reports**
+- CSV reports for all items, sold items, active items, brand performance, profit and storage location
+
+**Backups**
+- Automatic daily backup at 03:00, keeping the last seven
+- Manual backups on demand from the Management page
+- Restore any backup from the browser, with a safety copy and automatic rollback if the restored file is unusable
+- Optional upload of every backup to Wasabi S3 with configurable retention
+
+**Maintenance**
+- Vacuum and analyse, integrity check and reindex, remove duplicates, delete sold items, reset
+
+---
+
+## The pages
+
+All three pages share the same top bar. Click the mark on the left to return to the inventory.
+
+### Inventory — `/`
+
+The main table. Stat tiles at the top show available, sold and total counts; click a tile to filter by that status, click it again to clear. The search box matches name, colour, size, collar, brand, description, season and platform. Click any row to open the item detail with its QR code and actions. On narrower windows, less important columns hide rather than the table scrolling, and on phones the table becomes a card list.
+
+The **Add item** button in the top bar opens the add form. Import, Export and Print labels are in the page header.
+
+### Management — `/manage`
+
+Tabbed admin area:
+
+- **Overview**: headline numbers, quick actions, recent activity, top brands
+- **Brand / Collar Size / Size Management**: add, rename, activate, deactivate, delete
+- **Backups**: create, download, restore, delete local backups; list and upload to Wasabi when enabled
+- **Export Data**: all CSV, JSON and report exports
+- **Cleanup Tools**: destructive operations and database maintenance
+
+### Insights — `/insights`
+
+Filters apply as soon as you change them. The range is based on sold date for sold items and date added for everything else.
+
+### Print labels — `/print-all-labels`
+
+Tick the available items you want, then export a PDF with one label per page.
+
+---
+
+## Configuration
+
+Settings come from environment variables, or a `.env` file in the project root when running with Node. Copy `.env.example` to get started.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `3000` | Port the server listens on |
+| `DB_PATH` | `./data/inventory.db` | Location of the SQLite file. Backups go in a `backups` folder next to it |
+| `WASABI_ENABLED` | `false` | Set to `true` to upload backups to Wasabi |
+| `WASABI_ACCESS_KEY_ID` | | Wasabi access key |
+| `WASABI_SECRET_ACCESS_KEY` | | Wasabi secret key |
+| `WASABI_BUCKET_NAME` | | Bucket to upload into, under a `backups/` prefix |
+| `WASABI_REGION` | `us-east-1` | Wasabi region |
+| `WASABI_ENDPOINT` | `https://s3.{region}.wasabisys.com` | Override if you use a custom endpoint |
+| `WASABI_RETENTION_DAYS` | `14` | Remote backups older than this are deleted after each nightly upload |
+
+With Docker Compose, pass these through the `environment` block or a `.env` file beside the compose file.
+
+The container runs as the unprivileged `node` user, so the host `./data` folder must be writable by it.
+
+---
+
+## Backups and restore
+
+### Where backups live
+
+Local backups are written to `data/backups/` next to the database:
+
+- `backup-auto-<timestamp>.db` from the nightly job, last seven kept
+- `backup-manual-<timestamp>.db` from the Management page or API, kept until you delete them
+- `safety-backup-<ms>.db` taken immediately before a restore, deleted five minutes after a successful restore
+
+The timestamp in the filename is the source of truth for ordering, so copying the files between machines does not confuse the retention logic.
+
+### Restoring
+
+1. Management → Backups
+2. Click **Restore** next to the backup and confirm
+
+The server copies the current database to a safety backup, closes its connection, swaps the file, reopens, and runs a test query. If the test fails it swaps the safety backup back and tells you. Nothing is lost either way.
+
+To restore by hand instead: stop the app, replace `data/inventory.db` with the backup, start the app.
+
+### Wasabi
+
+When enabled, every manual and automatic backup is uploaded to `backups/<filename>` in your bucket, and after each nightly upload any remote backup older than `WASABI_RETENTION_DAYS` is removed. The Backups tab shows the remote list and offers an Upload button on local backups that are not yet remote.
+
+---
+
+## Updating a running install
+
+If your compose file uses the Docker Hub image:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+If it builds from source:
+
+```bash
+git pull --ff-only && docker compose up -d --build
+```
+
+Your data is in the `./data` volume and is untouched. Schema changes are applied automatically on startup. Check it came up with:
+
+```bash
+curl -s http://localhost:3000/health
+```
+
+---
+
+## API reference
+
+Everything is JSON. Errors return `{ "error": "message" }` with an appropriate status code. There is no authentication; see [Security notes](#security-notes).
+
+### Items
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/items` | All items. Optional `?search=` (name, colour, size, brand, description, location) and `?status=sold` or `?status=available` |
+| GET | `/api/items/:id` | One item |
+| POST | `/api/items` | Create. `name`, `color` and `size` are required |
+| PUT | `/api/items/:id` | Update any subset of fields |
+| PATCH | `/api/items/:id/sold` | Body `{ "is_sold": true }` or `false`. Sets or clears `sold_date` |
+| DELETE | `/api/items/:id` | Delete |
+
+Item fields: `name`, `color`, `size`, `collar_size`, `brand`, `bought_price`, `sold_for_price`, `condition_item`, `description`, `location`, `season`, `platform`, `item_number`, `is_sold`, `sold_date`. The legacy `price` field is still read as a fallback for `sold_for_price`.
+
+### Brands, sizes and collar sizes
+
+The three reference lists share one pattern. Replace `{resource}` with `brands`, `sizes` or `collar-sizes`.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/{resource}` | Active entries, for dropdowns |
+| GET | `/api/{resource}/all` | All entries including inactive |
+| POST | `/api/{resource}` | Create. Names are unique, case-insensitively |
+| PUT | `/api/{resource}/:id` | Rename or set `is_active` |
+| DELETE | `/api/{resource}/:id` | Delete. Returns 409 if any item uses it |
+
+### Statistics
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/stats` | `totalItems`, `soldItems`, `activeItems`, `totalValue` (listing value of unsold items), `profit` (realised, sold items with a bought price), `totalBrands` |
+| GET | `/api/cleanup/stats` | Sold count, duplicate count, database size |
+| GET | `/health` | `200` with uptime when the database answers, `503` otherwise |
+
+### Exports and imports
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/export/csv` | All items as CSV |
+| GET | `/api/export/json` | All items as JSON |
+| GET | `/api/export/excel` | All items as an `.xlsx` workbook |
+| GET | `/api/export/sold` | Sold items with profit, CSV |
+| GET | `/api/export/active` | Unsold items with expected profit, CSV |
+| GET | `/api/export/brand-report` | Per-brand counts, averages and profit, CSV |
+| GET | `/api/export/profit-report` | Per-item profit and margin, CSV |
+| GET | `/api/export/location-report` | Per-location counts and brands, CSV |
+| POST | `/api/export/labels-pdf` | Body `{ "itemIds": [1, 2] }`. Returns a PDF of 40mm x 30mm labels with QR codes |
+| POST | `/api/import` | Body `{ "format": "csv" or "json", "data": "<file contents>" }`. Accepts the column names produced by the exports |
+
+### Backups
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/backups/create` | Take a manual backup, uploading to Wasabi if enabled |
+| GET | `/api/backups` | List local backups with size, type and created time |
+| GET | `/api/backups/download/:filename` | Download a backup |
+| DELETE | `/api/backups/:filename` | Delete a backup |
+| POST | `/api/backups/:filename/restore` | Restore, with safety backup and rollback |
+| POST | `/api/backups/:filename/upload-to-wasabi` | Upload an existing local backup |
+| GET | `/api/backups/wasabi/list` | List remote backups. `400` when Wasabi is disabled |
+| GET | `/api/backup` | Legacy: stream a fresh copy of the database as a download |
+
+Filenames must be plain `.db` names. Anything containing a path separator or `..` is rejected with `400`.
+
+### Maintenance
+
+| Method | Endpoint | Description |
+|---|---|---|
+| DELETE | `/api/cleanup/sold` | Delete every sold item |
+| DELETE | `/api/cleanup/duplicates` | Keep the lowest id of each name, colour, size and brand combination |
+| DELETE | `/api/cleanup/reset` | Delete all items and brands, reseed default brands |
+| POST | `/api/maintenance/optimize` | `VACUUM` then `ANALYZE` |
+| POST | `/api/maintenance/repair` | Integrity check, `REINDEX` if it fails |
+
+### Examples
+
+```bash
+# Add an item
+curl -X POST http://localhost:3000/api/items \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Oxford Shirt","color":"White","size":"M","collar_size":"15.5",
+       "brand":"Ralph Lauren","bought_price":8.50,"sold_for_price":24.00,
+       "condition_item":"Very good","location":"Box A1","item_number":"NS-1000"}'
+
+# Mark it sold
+curl -X PATCH http://localhost:3000/api/items/1/sold \
+  -H "Content-Type: application/json" -d '{"is_sold": true}'
+
+# Search available items
+curl "http://localhost:3000/api/items?search=shirt&status=available"
+
+# Labels for three items
+curl -X POST http://localhost:3000/api/export/labels-pdf \
+  -H "Content-Type: application/json" -d '{"itemIds":[1,2,3]}' -o labels.pdf
+```
+
+---
+
+## Project layout
+
+```
+.
+├── server.js                  Express app, SQLite access, backups, cron, exports
+├── package.json
+├── Dockerfile                 node:22-alpine, non-root, health check on /health
+├── docker-compose.yaml        Builds from source; swap `build` for `image` to use Docker Hub
+├── build-and-push.sh          Builds and pushes jakebroom/vinted-inventory
+├── .env.example
+├── CLAUDE.md                  Notes for AI coding assistants
+├── AGENTS.md                  Contributor conventions
+├── public/
+│   ├── shared.css             Design tokens and shared components
+│   ├── inventory.html / .css  Inventory table, item modals, add and edit forms
+│   ├── management.html / .css Management tabs
+│   ├── insights.html / .css   Charts and KPIs (Chart.js from CDN)
+│   ├── print-all-labels.html  Batch label picker
+│   ├── print-label.html       Single 50mm x 80mm browser-printed label
+│   ├── print-label-simple.html Minimal variant of the single label
+│   └── favicon.svg
+└── data/                      Created at runtime, git-ignored
+    ├── inventory.db
+    └── backups/
+```
+
+---
+
+## Customising the look
+
+All colours, spacing, type sizes and radii are CSS custom properties at the top of `public/shared.css`. Change the accent by editing `--color-primary`, `--color-primary-hover`, `--color-primary-soft` and `--color-primary-text`; everything else follows. The page stylesheets only reference tokens, so they rarely need touching.
+
+The maximum content width is `--container-max`. The chart palette for Insights is the `CHART_PALETTE` array at the top of the script in `insights.html`.
+
+The brand mark and name are in the `.brand` link at the top of each page.
+
+---
+
+## Database schema
+
+SQLite, one file. Tables are created and migrated automatically on startup.
+
+**items**
+
+| Column | Notes |
+|---|---|
+| `id` | Primary key |
+| `item_number` | Your own reference, printed on labels |
+| `name`, `color`, `size` | Required |
+| `collar_size`, `brand` | Stored as text, matched by name against the reference tables |
+| `bought_price`, `sold_for_price` | Decimal. `sold_for_price` is the listing price until sold, then the sale price |
+| `price` | Legacy. Read as a fallback for `sold_for_price` |
+| `condition_item`, `description`, `location`, `season` | Free text |
+| `platform` | Defaults to `Vinted` |
+| `is_sold`, `sold_date` | Status and the date it was marked sold |
+| `date_added`, `created_at` | Set on creation |
+
+**brands**, **sizes**, **collar_sizes**
+
+| Column | Notes |
+|---|---|
+| `id` | Primary key |
+| `name` | Unique |
+| `is_active` | Inactive entries are hidden from dropdowns but kept for existing items |
+| `created_at` | |
+
+Profit everywhere is `COALESCE(sold_for_price, price, 0) - COALESCE(bought_price, 0)`.
+
+---
+
+## Troubleshooting
+
+**Port already in use**: change the host port in `docker-compose.yaml` (`"3001:3000"`) or run with `PORT=3001 npm start`.
+
+**Container is unhealthy**: `docker compose logs` will show why. The health check hits `/health` inside the container on port 3000 every 30 seconds.
+
+**Permission denied on data**: the container runs as uid 1000. On Linux, `sudo chown -R 1000:1000 ./data`.
+
+**Database is locked**: another process has the file open. Stop it, remove any `inventory.db-journal`, and restart.
+
+**Suspected corruption**: Management → Cleanup Tools → Repair Database, or `sqlite3 data/inventory.db "PRAGMA integrity_check;"`.
+
+**Wasabi list returns 400**: Wasabi is not enabled, or the credentials are incomplete. The server logs a warning at startup if `WASABI_ENABLED` is true but a value is missing.
+
+**Restore failed and rolled back**: the chosen file was not a usable SQLite database. Your previous data is intact. The safety backup is left in `data/backups` for you to check.
+
+---
+
+## Security notes
+
+There is no login and CORS is open. This is designed to run on a private network or behind something that handles authentication for you. If you expose it to the internet, put it behind a reverse proxy with authentication and HTTPS.
+
+Other things the app does for you:
+
+- Backup filenames supplied to the API are validated so they cannot escape the backups directory
+- The container runs as a non-root user
+- All SQL uses parameterised statements
+
+Keep secrets in `.env` or your orchestrator's secret store. Never commit `.env` or anything in `data/`.
+
+---
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+There is no test suite yet. See `AGENTS.md` for conventions and `CLAUDE.md` for a map of the codebase.
+
+### Releasing
+
+1. Bump `version` in `package.json` and `VERSION` in `build-and-push.sh`
+2. Commit and push to `main`
+3. Build and push the image:
+
+```bash
+docker build -t jakebroom/vinted-inventory:<version> -t jakebroom/vinted-inventory:latest .
+docker push jakebroom/vinted-inventory:<version>
+docker push jakebroom/vinted-inventory:latest
+```
+
+`build-and-push.sh` does the same with an interactive confirmation.
+
+---
+
+## Version history
+
+- **1.2.0** (2026-10-10): UI redesign. Shared top bar on every page, neutral palette with a single accent, no gradients or emoji. Profit column in pounds, clickable stat tiles, columns hide instead of scrolling, Insights filters apply on change, label picker restyled.
+- **1.1.6** (2026-10-10): Fixed restore leaving the database connection closed until restart, path traversal in backup download, delete and restore, missing `collar_size` column on fresh installs, and backup ordering on filesystems without birth times. Raised the JSON body limit for imports.
+- **1.1.5**: Fixed add brand, size and collar size buttons in the new item modal.
+- **1.1.2**: Modal centring, table width, available count, management overview cards.
+- **1.1.1**: Introduced `shared.css`.
+- **1.1.0**: SIGTERM handling for Docker, repository cleanup.
+- **1.0.x**: Initial releases.
+
+---
+
+MIT licence. Built with Express, SQLite, Chart.js, PDFKit and the `qrcode` library.

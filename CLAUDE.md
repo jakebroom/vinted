@@ -4,231 +4,149 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Vinted Inventory System - a comprehensive inventory management application for Vinted sellers. It's built with Express.js backend, SQLite database, and vanilla JavaScript/CSS frontend. The system manages clothing items with features like QR code generation, advanced reporting, brand management, and automated backups.
+NewStart Retail Inventory (repo name `vinted`) is a self-hosted inventory system for someone reselling clothing on Vinted and similar platforms. Express backend, SQLite database, vanilla HTML/CSS/JavaScript frontend. It tracks items with purchase and sale prices, prints QR-coded labels, exports reports, and backs itself up nightly with optional Wasabi S3 upload.
+
+It runs on the owner's home server from the Docker Hub image `jakebroom/vinted-inventory`. There is deliberately no authentication; it lives on a private network.
 
 ## Development Commands
 
 ### Local Development
 ```bash
-# Install dependencies
 npm install
-
-# Start the server (production mode)
-npm start
-
-# Start with auto-reload (development mode)
-npm run dev
-
-# Access the application
-# http://localhost:3000
+npm start          # production mode on http://localhost:3000
+npm run dev        # nodemon auto-reload
 ```
 
-### Docker Development
+Run against a scratch database so you never touch real data:
 ```bash
-# Build and start with Docker Compose
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Rebuild after code changes
-docker-compose down && docker-compose up -d --build
-
-# Stop containers
-docker-compose down
+PORT=3001 DB_PATH=./tmp/dev.db WASABI_ENABLED=false node server.js
 ```
+
+### Docker
+```bash
+docker compose up -d --build        # build from source and run
+docker compose logs -f
+docker compose down
+```
+
+### Releasing
+1. Bump `version` in `package.json` and `VERSION` in `build-and-push.sh`. Add a line to Version History below and in `readme.md`.
+2. Commit and push to `main`.
+3. `docker build -t jakebroom/vinted-inventory:<version> -t jakebroom/vinted-inventory:latest .`
+4. Smoke test: run the image, check `/health` returns 200 and `POST /api/items` works on a fresh database.
+5. Push both tags. Never overwrite a published version tag with different code.
+
+The owner updates the server with `docker compose pull && docker compose up -d`.
 
 ## Architecture
 
-### Backend Structure
+### Backend: `server.js`
 
-**Single File Architecture**: All backend code is in `server.js` (~2170 lines). The file is organized into clear sections:
+Everything lives in one file, about 2,400 lines, grouped by domain with banner comments. Search for the banner rather than relying on line numbers:
 
-1. **Configuration & Initialization (lines 1-61)**: Environment setup, middleware, database connection
-2. **Database Schema Management (lines 64-278)**: Table creation, migrations, default data seeding
-3. **API Routes by Domain**:
-   - Items API (lines 284-461): CRUD operations for inventory items
-   - Brands API (lines 467-653): Brand management with active/inactive states
-   - Collar Sizes API (lines 659-845): Shirt collar size management
-   - Sizes API (lines 851-1037): Clothing size management
-   - Statistics & Reports (lines 1043-1099): Dashboard stats and analytics
-   - Cleanup & Maintenance (lines 1105-1273): Database operations (vacuum, integrity checks, duplicates removal)
-   - Backup & Import/Export (lines 1279-1709): Manual/automated backups, Wasabi S3 integration, CSV/JSON/Excel export
-   - Export Routes (lines 1715-2091): Multiple export formats including PDF labels with QR codes
+| Banner | Contents |
+|---|---|
+| (top of file) | Env config, Wasabi client, middleware, `let db` connection, `initializeDatabase()`, default seeding, `addMissingColumns()` migrations |
+| `ITEM API ROUTES` | CRUD for items, mark sold/available |
+| `BRAND API ROUTES`, `COLLAR SIZE API ROUTES`, `SIZE API ROUTES` | Three identical five-route patterns for reference data |
+| `STATISTICS AND REPORTS` | `/api/stats` |
+| `CLEANUP AND MAINTENANCE ROUTES` | Delete sold, remove duplicates, reset, vacuum, repair, cleanup stats |
+| `BACKUP AND IMPORT/EXPORT ROUTES` | `resolveBackupPath()`, `backupCreatedAt()`, backup CRUD, restore, `reopenDatabase()`, Wasabi upload/list/cleanup, cron job, JSON/Excel export, import |
+| `EXPORT ROUTES` | CSV exports, reports, PDF labels, legacy `/api/backup` |
+| `HEALTH CHECK ENDPOINT` | `/health` |
+| `SERVE STATIC FILES` | Page routes `/`, `/manage`, `/insights`, `/print-all-labels` |
+| `ERROR HANDLING`, `SERVER STARTUP` | 404/500 handlers, SIGINT/SIGTERM shutdown, `app.listen` |
 
-4. **Automated Jobs**: Daily backup at 3 AM using node-cron (line 1526)
-5. **Wasabi S3 Integration**: Optional remote backup uploads configured via environment variables
+Key points:
+- **`db` is declared with `let`** and reassigned by `reopenDatabase()` after a restore. Always reference the module-level `db` at call time; never capture it at load time.
+- **Startup order matters.** `initializeDatabase()` runs the four `CREATE TABLE IF NOT EXISTS` statements and then `addMissingColumns()` inside `db.serialize()`. The items CREATE must include every column the app writes; migrations only exist for upgrading older databases.
+- **Backup filenames from requests must pass `resolveBackupPath()`**, which rejects anything that is not a plain `.db` name inside `data/backups/`. This closed a path traversal bug; keep it on any new filename-taking route.
+- **Backup ordering uses `backupCreatedAt()`**, which parses the timestamp from the filename and falls back to mtime. Do not use `birthtime`; it is unreliable on Linux/Docker filesystems.
+- **JSON body limit is 10mb** to allow imports.
 
 ### Database Schema
 
-**SQLite Database** (`./data/inventory.db`):
+SQLite at `DB_PATH` (default `./data/inventory.db`).
 
-- **items table**: Main inventory with fields like name, color, size, brand, bought_price, selling_price, is_sold, collar_size, location, season, platform, item_number
-- **brands table**: Brand registry with is_active flag for soft deletion
-- **sizes table**: Clothing sizes (XXS-XXXL, One Size) with active state management
-- **collar_sizes table**: Shirt collar sizes (14-20) with active state management
+- **items**: `id`, `item_number`, `name`, `color`, `size`, `collar_size`, `brand`, `bought_price`, `sold_for_price`, `price` (legacy fallback), `condition_item`, `description`, `location`, `season`, `platform` (default `Vinted`), `is_sold`, `sold_date`, `date_added`, `created_at`
+- **brands**, **sizes**, **collar_sizes**: `id`, `name` (unique), `is_active`, `created_at`
 
-Key patterns:
-- Soft deletion using `is_active` flags on reference tables
-- Cannot delete brands/sizes/collar_sizes if used by items (enforced in API)
-- Auto-incrementing IDs, timestamps, default values
-- Support for legacy `price` field (replaced by separate `bought_price`/`selling_price`)
+Patterns:
+- Items store brand, size and collar size **by name**, not by id. Renaming a reference entry does not update items (known gap).
+- Soft deletion via `is_active`; hard delete refused with 409 if any item uses the name.
+- Profit everywhere: `COALESCE(sold_for_price, price, 0) - COALESCE(bought_price, 0)`. `sold_for_price` is the listing price until sold, then the sale price.
+- `/api/stats` returns `activeItems` (not `availableItems`).
 
-### Frontend Structure
+### Frontend: `public/`
 
-**Public Directory** (`./public/`):
-- `shared.css`: Common design system with CSS variables, modal system, buttons, forms (v1.1.0+)
-- `inventory.html` + `inventory.css`: Main table view with search, filter, sorting, pagination
-- `management.html` + `management.css`: Item creation, brand/size management, database maintenance, overview dashboard
-- `insights.html` + `insights.css`: Analytics dashboard with Chart.js visualizations
-- `print-label.html`, `print-all-labels.html`, `print-label-simple.html`: QR code label printing
-- All use vanilla JavaScript (no frameworks), fetch API for backend calls
+No build step. Each page is one HTML file with its JavaScript inline, plus a page stylesheet. `shared.css` is loaded first everywhere.
 
-**Design System** (v1.2.0):
+| File | Route | Contents |
+|---|---|---|
+| `inventory.html` + `inventory.css` | `/` | `TableApp` class: table, mobile cards, search/filter/sort, pagination, item detail modal, add/edit forms, import/export. `?item=<id>&popup=true` opens an item (QR codes link here); `?add=1` opens the add form |
+| `management.html` + `management.css` | `/manage` | Tabs: overview, brand/collar/size managers (`BrandManager` etc.), backups, exports, cleanup |
+| `insights.html` + `insights.css` | `/insights` | `InsightsApp` class, Chart.js 4 from CDN, filters apply on change |
+| `print-all-labels.html` | `/print-all-labels` | Batch label picker, posts to `/api/export/labels-pdf` |
+| `print-label.html` | opened by the item modal | Single 50mm x 80mm label for browser printing. Not app UI; leave its styling alone |
+| `shared.css` | | Design tokens, app header, page header, buttons, forms, modals, badges, cards, stat tiles, tables, toasts, utilities |
+
+### Design System (v1.2.0)
+
 - Neutral application shell: light grey canvas (`--color-bg`), white surfaces with 1px borders, single indigo accent (`--color-primary: #4f46e5`). No gradients, glassmorphism, emoji icons or hover-lift animations.
 - Every page shares the same top bar (`.app-header` with `.brand`, `.app-nav`, `.app-actions`) and a `.page-header` title row. Mark the current page's nav link with `.active`.
-- All design tokens live in `:root` in `shared.css`. Page CSS should reference tokens, never hard-coded colours.
-- Button variants in shared.css: `.btn` (primary, solid indigo), `.btn-secondary` (white, bordered), `.btn-ghost`, `.btn-danger` (outlined red), `.btn-danger-solid`, `.btn-success`, `.btn-small` (compact, combine with a variant). Legacy classes `.btn-glass`, `.btn-info`, `.btn-warning`, `.btn-edit`, `.btn-toggle` render as secondary; `.btn-delete` renders as outlined danger.
-- Numeric table columns are right-aligned with tabular numerals (`.price-cell`, `.num`). Status and margin use subtle pills, not saturated colours.
-- Modal system: CSS class-based (`.show`) with flexbox centering, click-outside-to-close, white header with bottom border
-- Responsive design: Mobile card view for inventory (<768px), desktop table view (≥768px)
-- Accessibility: Visible focus rings, 36px minimum control height, WCAG 2.1 AA contrast ratios
-
-### Key Technical Patterns
-
-1. **Database Migrations**: `addMissingColumns()` function safely adds new columns to support schema evolution
-2. **Automated Backups**:
-   - Daily cron job at 3 AM creates `backup-auto-TIMESTAMP.db`
-   - Keeps last 7 automated backups
-   - Optional Wasabi S3 upload for remote storage
-3. **Duplicate Prevention**: Checks for existing brands/sizes before insertion using case-insensitive matching
-4. **Profit Calculations**: Uses `COALESCE(selling_price, price, 0) - COALESCE(bought_price, 0)` pattern throughout
-5. **Search Implementation**: Multi-field search using SQL LIKE across name, color, size, brand, description, location
-6. **QR Code Generation**: Items get QR codes linking to `/?item={id}&popup=true` for quick access
-7. **PDF Label Generation**: Uses PDFKit to create 40mm x 30mm labels with QR codes for thermal printers
+- All design tokens live in `:root` in `shared.css`. Page CSS references tokens, never hard-coded colours. `--container-max` (2400px) sets the shared content width.
+- Button variants: `.btn` (primary, solid indigo), `.btn-secondary` (white, bordered), `.btn-ghost`, `.btn-danger` (outlined red), `.btn-danger-solid`, `.btn-success`, `.btn-small` (compact; combine with a variant). Legacy classes `.btn-glass`, `.btn-info`, `.btn-warning`, `.btn-edit`, `.btn-toggle` render as secondary; `.btn-delete` as outlined danger. Cancel buttons are always secondary.
+- Numeric table columns are right-aligned with tabular numerals (`.price-cell`, `.num`). Status and margin use subtle pills.
+- Inventory table: columns carry `col-collar`, `col-condition`, `col-season`, `col-platform`, `col-added` on both `th` and `td`, and hide at 1500/1250/1050px breakpoints rather than scrolling. Below 768px the table is replaced by `.mobile-card` elements.
+- Stat tiles on the inventory page have `data-filter` and act as status filters.
+- Charts sit in `.chart-box` (fixed 300px height, `maintainAspectRatio: false`) and use `CHART_PALETTE` defined at the top of the insights script.
+- Modals: toggle `.show` on `.modal` (never `style.display`); white header with bottom border; click outside to close.
+- Accessibility: visible focus rings, 36px minimum control height, WCAG 2.1 AA contrast.
 
 ## Common Development Tasks
 
-### Adding New Item Fields
+### Adding an item field
+1. Add the column to the items `CREATE TABLE` in `initializeDatabase()` **and** to `columnsToAdd` in `addMissingColumns()`.
+2. Add it to the INSERT in `POST /api/items`, `allowedFields` in `PUT /api/items/:id`, and the import statement in `POST /api/import`.
+3. Add it to the CSV/JSON/Excel exports if it should appear there.
+4. In `inventory.html`: add inputs to both the add and edit forms, the table column (with a `col-*` class if it may hide on narrow screens), the mobile card, and the detail modal.
 
-1. Add column in `addMissingColumns()` function (server.js:249-278)
-2. Update SQL queries in POST/PUT endpoints (server.js:336-372, 375-418)
-3. Update export functions to include new field (server.js:1715+)
-4. Add form field in `management.html` and display in `inventory.html`
+### Adding an API endpoint
+Place it under the matching banner. Validate input, use parameterised `db.all` / `db.get` / `db.run`, log with `console.error('Error <doing thing>:', err.message)`, respond with `{ error }` and 400/404/409/500. If it takes a backup filename, resolve it with `resolveBackupPath()`.
 
-### Adding New API Endpoints
+### Working with backups
+- Files live in `data/backups/`: `backup-auto-*`, `backup-manual-*`, `safety-backup-*`.
+- Nightly cron at 03:00 server time creates an auto backup, uploads to Wasabi if enabled, prunes remote backups older than `WASABI_RETENTION_DAYS`, then keeps only the last 7 local auto backups.
+- Restore: safety copy of the live DB, close `db`, copy backup over `DB_PATH`, `reopenDatabase()`, test query, roll back on failure. The safety backup is deleted five minutes after success.
 
-Follow the established pattern:
-- Place in appropriate section based on domain (items/brands/sizes/stats/export)
-- Use db.all() for SELECT, db.run() for INSERT/UPDATE/DELETE, db.get() for single row
-- Return proper HTTP status codes (200, 201, 400, 404, 409, 500)
-- Include error logging with console.error()
-- Use prepared statements to prevent SQL injection
-
-### Working with Backups
-
-- Manual backups: POST `/api/backups/create`
-- List backups: GET `/api/backups`
-- Download: GET `/api/backups/download/:filename`
-- Restore backup: POST `/api/backups/:filename/restore`
-- Wasabi upload: POST `/api/backups/:filename/upload-to-wasabi`
-- Backup files stored in `./data/backups/`
-
-**Restore Process**: The restore endpoint safely closes the database connection, creates a safety backup of the current state, replaces the database file, reopens the connection, and validates the restored database. If validation fails, it automatically rolls back to the safety backup.
-
-**Retention Policy**:
-- Local backups: Keep last 7 automated backups (cleaned up after each automated backup)
-- Wasabi backups: Keep backups for `WASABI_RETENTION_DAYS` (default: 14 days). Cleanup runs after each automated backup upload.
+### Verifying a change
+Run against a scratch `DB_PATH`, delete the file to test a fresh install as well as an upgrade, hit the endpoint with `curl`, and load the page in a browser at desktop and phone widths. The browser console should show no errors other than a `400` from `/api/backups/wasabi/list` when Wasabi is disabled.
 
 ## Configuration
 
-### Environment Variables (.env)
+Environment variables, or `.env` when running with Node (see `.env.example`):
 
-Required:
-- `PORT`: Server port (default: 3000)
-- `DB_PATH`: Database file path (default: ./data/inventory.db)
+- `PORT` (default 3000), `DB_PATH` (default `./data/inventory.db`; backups go in `backups/` beside it)
+- `WASABI_ENABLED`, `WASABI_ACCESS_KEY_ID`, `WASABI_SECRET_ACCESS_KEY`, `WASABI_BUCKET_NAME`, `WASABI_REGION` (default `us-east-1`), `WASABI_ENDPOINT` (optional), `WASABI_RETENTION_DAYS` (default 14)
 
-Optional (Wasabi S3 remote backups):
-- `WASABI_ENABLED`: Set to "true" to enable
-- `WASABI_ACCESS_KEY_ID`: Wasabi access key
-- `WASABI_SECRET_ACCESS_KEY`: Wasabi secret key
-- `WASABI_BUCKET_NAME`: Bucket name
-- `WASABI_REGION`: Region (default: us-east-1)
-- `WASABI_RETENTION_DAYS`: Days to keep backups (default: 14)
-- `WASABI_ENDPOINT`: Custom endpoint (optional)
+Docker: `node:22-alpine`, `npm ci --omit=dev`, runs as the `node` user, health check on `/health` every 30s, `./data` mounted at `/app/data`, `restart: unless-stopped`.
 
-### Docker Configuration
-
-- Base image: node:18-alpine (lightweight, production-ready)
-- Non-root user: Runs as 'node' user for security
-- Health check: Built-in HTTP check on /health endpoint (server.js:2155 area - note: health endpoint not implemented, Dockerfile references it)
-- Volume: `./data` mounted to `/app/data` for database persistence
-- Auto-restart: `restart: unless-stopped` in docker-compose.yaml
-
-## Database Operations
-
-### Maintenance Operations
-
-- **Optimize**: POST `/api/maintenance/optimize` - Runs VACUUM and ANALYZE
-- **Repair**: POST `/api/maintenance/repair` - Integrity check and REINDEX if needed
-- **Delete Sold Items**: DELETE `/api/cleanup/sold`
-- **Remove Duplicates**: DELETE `/api/cleanup/duplicates` - Based on name+color+size+brand
-- **Reset Database**: DELETE `/api/cleanup/reset` - Deletes all items and brands, reseeds defaults
-
-### Brand/Size Management Pattern
-
-All reference tables (brands, sizes, collar_sizes) follow the same API pattern:
-- GET `/api/{resource}` - Active items only (for dropdowns)
-- GET `/api/{resource}/all` - All items including inactive (for management UI)
-- POST `/api/{resource}` - Create with uniqueness validation
-- PUT `/api/{resource}/:id` - Update name or is_active state
-- DELETE `/api/{resource}/:id` - Delete only if unused by items (returns 409 if used)
-
-## Testing & Debugging
-
-- Server logs include clear prefixes: "Error {action}:", "Successfully {action}"
-- Database errors log full error.message
-- All API errors return JSON with `{ error: "message" }` format
-- Check `./data/backups/` for automated backup files (retention: 7 days)
-- Use `/api/stats` and `/api/cleanup/stats` for database health checks
-
-## Important Notes
-
-- **Database File**: Must be writable. Docker uses non-root user, ensure permissions on `./data/`
-- **Graceful Shutdown**: SIGINT and SIGTERM handlers close database connection properly (server.js, v1.1.0+)
-- **Legacy Fields**: `price` field kept for backwards compatibility, prefer `selling_price`
-- **QR Codes**: Generated server-side using `qrcode` library, embedded in PDFs and HTML
-- **No Build Process**: Pure vanilla JS/CSS, no transpilation or bundling needed
-- **Health Check**: GET `/health` endpoint checks database connectivity, returns 200 (healthy) or 503 (unhealthy) with uptime info
-- **Modal System**: All modals use CSS classes (`.show`) instead of inline styles for proper centering (v1.1.2)
-- **Stats API**: Returns `activeItems` (not `availableItems`) for unsold item count
-
-## CSS Architecture (v1.1.1+)
-
-**Shared Design System** (`shared.css`):
-- CSS custom properties for colors, spacing, typography
-- Base styles: body, containers, buttons, forms, tables, modals
-- Utility classes and responsive breakpoints
-- Eliminates ~400+ lines of duplicate CSS across pages
-
-**Page-Specific CSS**:
-- `inventory.css`: Table layouts, stats bar, pagination, mobile card view
-- `management.css`: Tab navigation, overview cards, brand/size/collar management cards, backup tables
-- `insights.css`: KPI tiles, chart cards, filter bar
-
-**Modal Pattern**:
-- HTML: Modals with `.modal` class, initially hidden
-- JavaScript: Use `classList.add('show')` and `classList.remove('show')` (NOT `style.display`)
-- CSS: `.modal.show` uses flexbox to center modal-content
-- No X close buttons - click outside modal to close (event listener on modal background)
+## Known Gaps
+- No authentication or CORS restriction. Intentional for now; do not add without being asked.
+- Renaming a brand, size or collar size does not update items that reference the old name.
+- Manual and nightly backups copy the database file rather than using SQLite's backup API (the legacy `/api/backup` route does use it).
+- The CSV importer is hand-rolled and breaks on fields containing newlines.
+- Client-side search does not match `item_number` or `location`.
+- No automated tests.
 
 ## Version History
 
-- **v1.2.0** (2026-10-10): UI redesign - neutral application shell with shared top bar, single indigo accent, no gradients or emoji; profit column in pounds; clickable stat tiles filter the table; Insights filters apply on change; label picker restyled; stale CSS docs removed
-- **v1.1.6** (2026-10-10): Fixed restore leaving a closed DB handle, backup filename path traversal, missing collar_size column on fresh installs, backup ordering by filename timestamp
-- **v1.1.2** (2025-10-31): UI improvements - modal centering, inventory table width (95%), fixed Available count, restored management overview cards, white text on insights page, enhanced button styling
-- **v1.1.1** (2025-10-30): CSS refactoring - created shared.css design system, eliminated duplicate styles
-- **v1.1.0** (2025-10-30): Security improvements - added SIGTERM handler for Docker, cleaned up git repository
+- **v1.2.0** (2026-10-10): UI redesign - neutral application shell with shared top bar, single indigo accent, no gradients or emoji; profit column in pounds; clickable stat tiles filter the table; columns hide instead of scrolling; Insights filters apply on change; label picker restyled; stale CSS docs removed
+- **v1.1.6** (2026-10-10): Fixed restore leaving a closed DB handle, backup filename path traversal, missing collar_size column on fresh installs, backup ordering by filename timestamp; raised JSON body limit; removed third-party QR redirect
+- **v1.1.5**: Fixed add brand/size/collar size buttons in the new item modal
+- **v1.1.2** (2025-10-31): Modal centering, inventory table width, Available count, management overview cards
+- **v1.1.1** (2025-10-30): Created shared.css design system
+- **v1.1.0** (2025-10-30): SIGTERM handler for Docker, repository cleanup
 - **v1.0.9** and earlier: Initial release and incremental improvements
 
 ## gstack
